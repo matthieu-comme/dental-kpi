@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tableau de bord - Saisie Rapide</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen p-8 font-sans">
+    <div class="max-w-5xl mx-auto space-y-6">
+      <div
+        class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-200"
+      >
+        <h1 class="text-2xl font-bold text-gray-800">Accueil Secrétariat</h1>
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <label class="text-sm font-medium text-gray-600">Praticien :</label>
+            <select
+              class="border-gray-300 rounded-lg p-1.5 border focus:ring-blue-500 bg-white text-sm font-medium text-gray-700"
+            >
+              <option>Dr. Blin</option>
+              <option>Dr. Shaq</option>
+            </select>
+          </div>
+
+          <div class="text-gray-500 font-medium" id="date-jour"></div>
+        </div>
+        <button
+          class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow transition-colors text-sm"
+        >
+          Espace Praticien
+        </button>
+        <div class="text-gray-500 font-medium" id="date-jour"></div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold text-blue-900 mb-4 border-b pb-2">
+            Enregistrer un Devis
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >N° Dossier Patient</label
+              >
+              <input
+                type="text"
+                class="w-full border-gray-300 rounded-lg p-2 border focus:ring-blue-500"
+                placeholder="Ex: 10492"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Montant (€)</label
+              >
+              <input
+                type="number"
+                class="w-full border-gray-300 rounded-lg p-2 border focus:ring-blue-500"
+                placeholder="1200.00"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Date d'émission</label
+              >
+              <input
+                type="date"
+                id="date_devis"
+                class="w-full border-gray-300 rounded-lg p-2 border focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Statut :</label
+              >
+              <div class="space-y-2">
+                <label
+                  class="flex items-center p-2 border rounded cursor-pointer bg-blue-50 border-blue-500"
+                >
+                  <input
+                    type="radio"
+                    name="statut_devis"
+                    value="EN_ATTENTE"
+                    class="h-4 w-4 text-blue-600"
+                    checked
+                  />
+                  <span class="ml-2 text-sm">En attente</span>
+                </label>
+                <label
+                  class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50"
+                >
+                  <input
+                    type="radio"
+                    name="statut_devis"
+                    value="ACCEPTE"
+                    class="h-4 w-4 text-green-600"
+                  />
+                  <span class="ml-2 text-sm">Accepté sur place</span>
+                </label>
+                <label
+                  class="flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50"
+                >
+                  <input
+                    type="radio"
+                    name="statut_devis"
+                    value="REFUSE"
+                    class="h-4 w-4 text-red-600"
+                  />
+                  <span class="ml-2 text-sm">Refusé sur place</span>
+                </label>
+              </div>
+            </div>
+            <button
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg mt-2"
+            >
+              + Ajouter le devis
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold text-green-700 mb-4 border-b pb-2">
+            Enregistrer un Chèque
+          </h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >N° Dossier Patient</label
+              >
+              <input
+                type="text"
+                class="w-full border-gray-300 rounded-lg p-2 border focus:ring-green-500"
+                placeholder="Ex: 10492"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1"
+                >Montant (€)</label
+              >
+              <input
+                type="number"
+                class="w-full border-gray-300 rounded-lg p-2 border focus:ring-green-500"
+                placeholder="350.00"
+              />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Date réception</label
+                >
+                <input
+                  type="date"
+                  id="date_reception"
+                  class="w-full border-gray-300 rounded-lg p-2 border focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1"
+                  >Date dépôt prévue</label
+                >
+                <input
+                  type="date"
+                  id="date_depot"
+                  class="w-full border-gray-300 rounded-lg p-2 border focus:ring-green-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2"
+                >Statut :</label
+              >
+              <div class="flex gap-4">
+                <label
+                  class="flex-1 flex items-center p-2 border rounded cursor-pointer bg-green-50 border-green-500"
+                >
+                  <input
+                    type="radio"
+                    name="statut_cheque"
+                    value="EN_ATTENTE"
+                    class="h-4 w-4 text-green-600"
+                    checked
+                  />
+                  <span class="ml-2 text-sm">En attente</span>
+                </label>
+                <label
+                  class="flex-1 flex items-center p-2 border rounded cursor-pointer hover:bg-gray-50"
+                >
+                  <input
+                    type="radio"
+                    name="statut_cheque"
+                    value="DEPOSE"
+                    class="h-4 w-4 text-gray-600"
+                  />
+                  <span class="ml-2 text-sm">Déposé</span>
+                </label>
+              </div>
+            </div>
+            <button
+              class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg mt-2"
+            >
+              + Ajouter le chèque
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const today = new Date();
+      const in30Days = new Date(today);
+      in30Days.setDate(in30Days.getDate() + 30);
+
+      document.getElementById("date-jour").innerText =
+        today.toLocaleDateString("fr-FR");
+      document.getElementById("date_devis").valueAsDate = today;
+      document.getElementById("date_reception").valueAsDate = today;
+      document.getElementById("date_depot").valueAsDate = in30Days;
+    </script>
+  </body>
+</html>
