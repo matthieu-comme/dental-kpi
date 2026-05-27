@@ -1,6 +1,12 @@
 from fastapi import FastAPI
+from app.routers import *
 
 app = FastAPI()
+
+
+@app.get("/")
+def root():
+    return {"Hello": "World"}
 
 
 @app.get("/api/v1/status")
