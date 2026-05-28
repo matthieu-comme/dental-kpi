@@ -1,0 +1,1 @@
+# regles de validation Pydantic
