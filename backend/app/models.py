@@ -23,7 +23,7 @@ class Praticien(Base):
     __tablename__ = "praticiens"
 
     id_praticien = Column(Integer, primary_key=True, autoincrement=True)
-    nom_praticien = Column(String, nullable=False)
+    nom = Column(String, nullable=False)
     est_actif = Column(Boolean, default=True, nullable=False)
     pin_hash = Column(String, nullable=False)
 
@@ -34,7 +34,7 @@ class ConfigSysteme(Base):
 
     id_config = Column(Integer, primary_key=True, autoincrement=True)
     password_global_hash = Column(String, nullable=False)
-    cle_api_sms = Column(String, nullable=False)
+    cle_api_sms = Column(String)
     nom_cabinet = Column(String, nullable=False)
     telephone_cabinet = Column(String, nullable=False)
     heure_execution_cron = Column(Time, nullable=False)
@@ -60,8 +60,8 @@ class ParametresPraticien(Base):
     id_praticien = Column(
         Integer, ForeignKey("praticiens.id_praticien"), unique=True, nullable=False
     )
-    taux_horaire_cible = Column(Float)
-    ca_mensuel_cible = Column(Float)
+    taux_horaire_cible = Column(Float, nullable=False)
+    ca_mensuel_cible = Column(Float, nullable=False)
     delai_relance_jours = Column(Integer, nullable=False, server_default="15")
     seuil_devis_sms = Column(Float, nullable=False, server_default="500")
     seuil_devis_assistante = Column(Float, nullable=False, server_default="1500")
@@ -162,6 +162,7 @@ class PerformanceMensuelle(Base):
 class PeriodiciteCharge(str, enum.Enum):
     PONCTUEL = "PONCTUEL"
     MENSUEL = "MENSUEL"
+    TRIMESTRIEL = "TRIMESTRIEL"
     ANNUEL = "ANNUEL"
 
 
@@ -174,7 +175,7 @@ class Charge(Base):
     )
     designation = Column(String, nullable=False)
     montant = Column(Float, nullable=False)
-    periodicite = Column(Enum(PeriodiciteCharge), nullable=True)
+    periodicite = Column(Enum(PeriodiciteCharge), nullable=False)
     date_debut = Column(Date, nullable=False, index=True)
     date_fin = Column(Date, index=True)
-    lissage_mensuel = Column(Boolean)
+    lissage_mensuel = Column(Boolean, nullable=False, default=True)
