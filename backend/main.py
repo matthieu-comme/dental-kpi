@@ -1,7 +1,10 @@
 from fastapi import FastAPI
-from app.routers import *
+from app.routers import devis, praticiens
 
 app = FastAPI()
+
+app.include_router(praticiens.router)
+app.include_router(devis.router)
 
 
 @app.get("/")

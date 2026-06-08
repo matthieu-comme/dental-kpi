@@ -20,13 +20,13 @@ class PraticienBase(BaseModel):
 
 
 class PraticienCreate(PraticienBase):
-    pin_clair: str
+    pin_clair: str = Field(pattern=r"^\d{4,6}$")
 
 
 class PraticienUpdate(BaseModel):
     nom: Optional[str] = None
     est_actif: Optional[bool] = None
-    pin_clair: Optional[str] = None
+    pin_clair: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
 
 
 class PraticienResponse(PraticienBase):
@@ -43,7 +43,7 @@ class ConfigSystemeBase(BaseModel):
 
 
 class ConfigSystemeCreate(ConfigSystemeBase):
-    password_global_clair: str
+    password_global_clair: str = Field(max_length=70)
 
 
 class ConfigSystemeUpdate(BaseModel):
@@ -51,7 +51,7 @@ class ConfigSystemeUpdate(BaseModel):
     nom_cabinet: Optional[str] = None
     telephone_cabinet: Optional[str] = None
     heure_execution_cron: Optional[time] = None
-    password_global_clair: Optional[str] = None
+    password_global_clair: Optional[str] = Field(default=None, max_length=70)
 
 
 class ConfigSystemeResponse(ConfigSystemeBase):

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
-from utils import hash_pin, check_pin
+from app.utils import hash_pin, check_pin
 
 # CONFIG
 
