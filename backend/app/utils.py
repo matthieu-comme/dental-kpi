@@ -1,6 +1,6 @@
 from passlib.context import CryptContext
 
-# Configuration du contexte de hachage (ici avec bcrypt)
+# Configuration du hachage (bcrypt)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 

@@ -237,7 +237,7 @@ class PerformanceMensuelleUpdate(BaseModel):
 
 
 class PerformanceMensuelleResponse(PerformanceMensuelleBase):
-    id_perf_mens: int
+    id_perf: int
     id_praticien: int
 
     model_config = ConfigDict(from_attributes=True)

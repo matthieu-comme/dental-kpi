@@ -150,7 +150,7 @@ class Cheque(Base):
 class PerformanceMensuelle(Base):
     __tablename__ = "performances_mensuelles"
 
-    id_perf_mens = Column(Integer, primary_key=True, autoincrement=True)
+    id_perf = Column(Integer, primary_key=True, autoincrement=True)
     id_praticien = Column(
         Integer, ForeignKey("praticiens.id_praticien"), nullable=False, index=True
     )
