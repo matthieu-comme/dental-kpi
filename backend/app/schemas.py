@@ -38,7 +38,7 @@ class PraticienResponse(PraticienBase):
 class ConfigSystemeBase(BaseModel):
     cle_api_sms: Optional[str] = None
     nom_cabinet: str
-    telephone_cabinet: str
+    telephone_cabinet: str = Field(pattern=r"^0[1-9]\d{8}$")
     heure_execution_cron: time
 
 
@@ -49,7 +49,7 @@ class ConfigSystemeCreate(ConfigSystemeBase):
 class ConfigSystemeUpdate(BaseModel):
     cle_api_sms: Optional[str] = None
     nom_cabinet: Optional[str] = None
-    telephone_cabinet: Optional[str] = None
+    telephone_cabinet: Optional[str] = Field(default=None, pattern=r"^0[1-9]\d{8}$")
     heure_execution_cron: Optional[time] = None
     password_global_clair: Optional[str] = Field(default=None, max_length=70)
 
@@ -116,6 +116,14 @@ class JourneeBase(BaseModel):
     nb_rdv_manques_nouveaux: int = Field(ge=0)
     temps_presence_minutes: int = Field(gt=0)
     temps_perdu_minutes: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def check_temps(self):
+        if self.temps_perdu_minutes > self.temps_presence_minutes:
+            raise ValueError(
+                "Le temps perdu à cause des absences ne peut pas être supérieur au temps de présence total."
+            )
+        return self
 
 
 class JourneeCreate(JourneeBase):

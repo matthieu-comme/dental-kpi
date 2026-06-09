@@ -5,6 +5,23 @@ from app.utils import hash_pin, check_pin
 # CONFIG
 
 
+def create_config(db: Session, config: schemas.ConfigSystemeCreate):
+    if get_config(db) is not None:
+        raise ValueError("La configuration initiale a déjà été créée.")
+
+    config_data = config.model_dump()
+    config_data["id_config"] = 1
+    config_data["password_global_hash"] = hash_pin(
+        config_data.pop("password_global_clair")
+    )
+
+    db_config = models.ConfigSysteme(**config_data)
+    db.add(db_config)
+    db.commit()
+    db.refresh(db_config)
+    return db_config
+
+
 def get_config(db: Session):
     return (
         db.query(models.ConfigSysteme)
@@ -37,13 +54,28 @@ def update_config(db: Session, config_update: schemas.ConfigSystemeUpdate):
 
 
 def create_praticien(db: Session, praticien: schemas.PraticienCreate):
-    praticien_data = praticien.model_dump()
-    praticien_data["pin_hash"] = hash_pin(praticien_data.pop("pin_clair"))
-    db_praticien = models.Praticien(**praticien_data)
-    db.add(db_praticien)
-    db.commit()
-    db.refresh(db_praticien)
-    return db_praticien
+    try:
+        praticien_data = praticien.model_dump()
+        praticien_data["pin_hash"] = hash_pin(praticien_data.pop("pin_clair"))
+        db_praticien = models.Praticien(**praticien_data)
+
+        db.add(db_praticien)
+        db.flush()
+
+        db_parametres = models.ParametresPraticien(
+            id_praticien=db_praticien.id_praticien,
+            taux_horaire_cible=300.0,
+            ca_mensuel_cible=20000.0,
+        )
+
+        db.add(db_parametres)
+        db.commit()
+        db.refresh(db_praticien)
+
+        return db_praticien
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 def get_praticien(db: Session, id_praticien: int):

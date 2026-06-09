@@ -7,6 +7,7 @@ from sqlalchemy import (
     ForeignKey,
     DateTime,
     CheckConstraint,
+    UniqueConstraint,
 )
 from sqlalchemy.sql import func
 from app.database import Base
@@ -89,6 +90,10 @@ class Log(Base):
 
 class Journee(Base):
     __tablename__ = "journees"
+
+    __table_args__ = (
+        UniqueConstraint("id_praticien", "date_jour", name="uq_praticien_date"),
+    )
 
     id_journee: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     id_praticien: Mapped[int] = mapped_column(
