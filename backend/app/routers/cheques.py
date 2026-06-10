@@ -30,6 +30,17 @@ def create_cheque(
         )
 
 
+@router.get("/", response_model=list[schemas.ChequeResponse])
+def read_cheques(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    query = db.query(models.Cheque)
+    if current_user["role"] == RoleUser.PRATICIEN:
+        query = query.filter(models.Cheque.id_praticien == int(current_user["id"]))
+    return query.all()
+
+
 @router.get("/{id_cheque}", response_model=schemas.ChequeResponse)
 def read_cheque(
     id_cheque: int,

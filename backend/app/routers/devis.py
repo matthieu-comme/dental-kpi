@@ -30,6 +30,17 @@ def create_devis(
         )
 
 
+@router.get("/", response_model=list[schemas.DevisResponse])
+def read_deviss(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    query = db.query(models.Devis)
+    if current_user["role"] == RoleUser.PRATICIEN:
+        query = query.filter(models.Devis.id_praticien == int(current_user["id"]))
+    return query.all()
+
+
 @router.get("/{id_devis}", response_model=schemas.DevisResponse)
 def read_devis(
     id_devis: int,

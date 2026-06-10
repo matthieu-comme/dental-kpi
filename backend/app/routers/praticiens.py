@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app import schemas, crud
+from app import schemas, crud, models
 from app.database import get_db
 from sqlalchemy.exc import IntegrityError
 from app.routers.auth import get_current_user
@@ -22,6 +22,17 @@ def create_praticien(
             status_code=403, detail="Seule la secrétaire peut créer un praticien."
         )
     return crud.create_praticien(db, praticien)
+
+
+@router.get("/", response_model=list[schemas.PraticienResponse])
+def read_praticiens(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    # Seule la secrétaire a le droit de lister l'ensemble des praticiens du cabinet
+    if current_user["role"] != RoleUser.SECRETAIRE:
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+    return db.query(models.Praticien).all()
 
 
 @router.get("/{id_praticien}", response_model=schemas.PraticienResponse)

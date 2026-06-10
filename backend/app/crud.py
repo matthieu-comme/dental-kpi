@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.utils import hash_pin, check_pin
+from app.models import TypeAction, TypeEntite
 
 # CONFIG
 
@@ -171,6 +172,15 @@ def create_devis(db: Session, devis: schemas.DevisCreate):
     db.add(db_devis)
     db.commit()
     db.refresh(db_devis)
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.AJOUT_DEVIS,
+        details=f"Création devis - Patient: {db_devis.id_patient}, Montant: {db_devis.montant}",
+        type_entite=TypeEntite.DEVIS,
+        id_entite=db_devis.id_devis,
+    )
+    create_log(db=db, log=log)
+
     return db_devis
 
 
@@ -203,6 +213,15 @@ def update_devis(db: Session, id_devis: int, devis_update: schemas.DevisUpdate):
 
     db.commit()
     db.refresh(db_devis)
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.MODIF_DEVIS,
+        details=f"Modification devis ID: {id_devis}",
+        type_entite=TypeEntite.DEVIS,
+        id_entite=id_devis,
+    )
+    create_log(db=db, log=log)
+
     return db_devis
 
 
@@ -214,6 +233,15 @@ def create_cheque(db: Session, cheque: schemas.ChequeCreate):
     db.add(db_cheque)
     db.commit()
     db.refresh(db_cheque)
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.AJOUT_CHEQUE,
+        details=f"Création chèque - Patient: {db_cheque.id_patient}, Montant: {db_cheque.montant}",
+        type_entite=TypeEntite.CHEQUE,
+        id_entite=db_cheque.id_cheque,
+    )
+    create_log(db=db, log=log)
+
     return db_cheque
 
 
@@ -229,6 +257,15 @@ def update_cheque(db: Session, id_cheque: int, cheque_update: schemas.ChequeUpda
 
     db.commit()
     db.refresh(db_cheque)
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.MODIF_CHEQUE,
+        details=f"Modification chèque ID: {id_cheque}",
+        type_entite=TypeEntite.CHEQUE,
+        id_entite=id_cheque,
+    )
+    create_log(db=db, log=log)
+
     return db_cheque
 
 

@@ -26,6 +26,19 @@ def create_performance(
     return crud.create_performance(db=db, perf=perf_in)
 
 
+@router.get("/", response_model=list[schemas.PerformanceMensuelleResponse])
+def read_performances(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    query = db.query(models.PerformanceMensuelle)
+    if current_user["role"] == RoleUser.PRATICIEN:
+        query = query.filter(
+            models.PerformanceMensuelle.id_praticien == int(current_user["id"])
+        )
+    return query.all()
+
+
 @router.get("/{id_perf}", response_model=schemas.PerformanceMensuelleResponse)
 def read_performance(
     id_perf: int,

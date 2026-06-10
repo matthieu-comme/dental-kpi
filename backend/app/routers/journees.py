@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from app import crud, schemas
+from app import crud, schemas, models
 from app.database import get_db
 from app.routers.auth import get_current_user
 from app.models import RoleUser
@@ -28,6 +28,17 @@ def create_journee(journee_in: schemas.JourneeCreate, db: Session = Depends(get_
             status_code=400,
             detail="Impossible de créer la journée : le praticien spécifié n'existe pas.",
         )
+
+
+@router.get("/", response_model=list[schemas.JourneeResponse])
+def read_journees(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    query = db.query(models.Journee)
+    if current_user["role"] == RoleUser.PRATICIEN:
+        query = query.filter(models.Journee.id_praticien == int(current_user["id"]))
+    return query.all()
 
 
 @router.get("/{id_journee}", response_model=schemas.JourneeResponse)

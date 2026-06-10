@@ -28,6 +28,17 @@ def create_charge(
     return crud.create_charge(db=db, charge=charge_in)
 
 
+@router.get("/", response_model=list[schemas.ChargeResponse])
+def read_charges(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    query = db.query(models.Charge)
+    if current_user["role"] == RoleUser.PRATICIEN:
+        query = query.filter(models.Charge.id_praticien == int(current_user["id"]))
+    return query.all()
+
+
 @router.get("/{id_charge}", response_model=schemas.ChargeResponse)
 def read_charge(
     id_charge: int,
