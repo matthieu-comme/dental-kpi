@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app import crud, schemas
 from app.database import get_db
+from app.routers.auth import get_current_user
+from app.models import RoleUser
 
 router = APIRouter(prefix="/api/v1/journees", tags=["Journées"])
 
@@ -29,10 +31,19 @@ def create_journee(journee_in: schemas.JourneeCreate, db: Session = Depends(get_
 
 
 @router.get("/{id_journee}", response_model=schemas.JourneeResponse)
-def read_journee(id_journee: int, db: Session = Depends(get_db)):
+def read_journee(
+    id_journee: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     db_journee = crud.get_journee(db, id_journee=id_journee)
     if db_journee is None:
         raise HTTPException(status_code=404, detail="Journée introuvable.")
+
+    if current_user["role"] == RoleUser.PRATICIEN and db_journee.id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
     return db_journee
 
 
@@ -41,10 +52,15 @@ def update_journee(
     id_journee: int,
     journee_update: schemas.JourneeUpdate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
-    db_journee = crud.update_journee(
-        db, id_journee=id_journee, journee_update=journee_update
-    )
+    db_journee = crud.get_journee(db, id_journee=id_journee)
     if db_journee is None:
         raise HTTPException(status_code=404, detail="Journée introuvable.")
-    return db_journee
+
+    if current_user["role"] == RoleUser.PRATICIEN and db_journee.id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
+    return crud.update_journee(db, id_journee=id_journee, journee_update=journee_update)

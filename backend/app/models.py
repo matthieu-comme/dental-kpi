@@ -189,3 +189,8 @@ class Charge(Base):
     date_debut: Mapped[date] = mapped_column(index=True, nullable=False)
     date_fin: Mapped[Optional[date]] = mapped_column(index=True)
     lissage_mensuel: Mapped[bool] = mapped_column(nullable=False, default=True)
+
+
+class RoleUser(str, enum.Enum):
+    SECRETAIRE = "SECR"
+    PRATICIEN = "PRAT"

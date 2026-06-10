@@ -10,6 +10,7 @@ from app.routers import (
     cheques,
     charges,
     performances,
+    auth,
 )
 from app.database import SessionLocal, engine
 from app import models, crud, schemas
@@ -41,6 +42,7 @@ app = FastAPI(title="API Dental KPI", version="1.0.0", lifespan=lifespan)
 
 
 app.include_router(systeme.router)
+app.include_router(auth.router)
 app.include_router(praticiens.router)
 app.include_router(journees.router)
 app.include_router(devis.router)

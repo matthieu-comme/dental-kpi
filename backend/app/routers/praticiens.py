@@ -5,17 +5,36 @@ from sqlalchemy.orm import Session
 from app import schemas, crud
 from app.database import get_db
 from sqlalchemy.exc import IntegrityError
+from app.routers.auth import get_current_user
+from app.models import RoleUser
 
 router = APIRouter(prefix="/api/v1/praticiens", tags=["Praticiens"])
 
 
 @router.post("/", response_model=schemas.PraticienResponse)
-def create_praticien(praticien: schemas.PraticienCreate, db: Session = Depends(get_db)):
+def create_praticien(
+    praticien: schemas.PraticienCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["role"] != RoleUser.SECRETAIRE:
+        raise HTTPException(
+            status_code=403, detail="Seule la secrétaire peut créer un praticien."
+        )
     return crud.create_praticien(db, praticien)
 
 
 @router.get("/{id_praticien}", response_model=schemas.PraticienResponse)
-def read_praticien(id_praticien: int, db: Session = Depends(get_db)):
+def read_praticien(
+    id_praticien: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["role"] == RoleUser.PRATICIEN and id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
     db_praticien = crud.get_praticien(db, id_praticien=id_praticien)
     if db_praticien is None:
         raise HTTPException(status_code=404, detail="Praticien non trouvé")
@@ -27,7 +46,13 @@ def update_praticien(
     id_praticien: int,
     praticien_update: schemas.PraticienUpdate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    if current_user["role"] == RoleUser.PRATICIEN and id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
     db_praticien = crud.update_praticien(
         db, id_praticien=id_praticien, praticien_update=praticien_update
     )
@@ -45,7 +70,7 @@ def create_parametres_praticien(
     try:
         return crud.create_parametres_praticien(db=db, parametres=parametres)
     except IntegrityError:
-        db.rollback()  # Annule la transaction en échec
+        db.rollback()
         raise HTTPException(
             status_code=400,
             detail="Impossible de créer les paramètres : le praticien spécifié n'existe pas.",
@@ -55,7 +80,19 @@ def create_parametres_praticien(
 @router.get(
     "/{id_praticien}/parametres", response_model=schemas.ParametresPraticienResponse
 )
-def read_parametres_praticien(id_praticien: int, db: Session = Depends(get_db)):
+def read_parametres_praticien(
+    id_praticien: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["role"] == RoleUser.SECRETAIRE:
+        raise HTTPException(
+            status_code=403, detail="Seul un praticien peut consulter ses paramètres."
+        )
+
+    if id_praticien != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
     db_param = crud.get_parametres_praticien(db, id_praticien=id_praticien)
     if db_param is None:
         raise HTTPException(
@@ -71,7 +108,16 @@ def update_parametres_praticien(
     id_praticien: int,
     parametres_update: schemas.ParametresPraticienUpdate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    if current_user["role"] == RoleUser.SECRETAIRE:
+        raise HTTPException(
+            status_code=403, detail="Seul un praticien peut modifier ses paramètres."
+        )
+
+    if id_praticien != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
     db_param = crud.update_parametres_praticien(
         db, id_praticien=id_praticien, parametres_update=parametres_update
     )

@@ -3,29 +3,47 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
 from app.database import get_db
+from app.routers.auth import get_current_user
+from app.models import RoleUser
 
 router = APIRouter(prefix="/api/v1/charges", tags=["Charges"])
 
 
 @router.post("/", response_model=schemas.ChargeResponse, status_code=201)
-def create_charge(charge_in: schemas.ChargeCreate, db: Session = Depends(get_db)):
-    try:
-        return crud.create_charge(db=db, charge=charge_in)
-    except IntegrityError:
-        db.rollback()
+def create_charge(
+    charge_in: schemas.ChargeCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["role"] == RoleUser.SECRETAIRE:
         raise HTTPException(
-            status_code=400,
-            detail="Impossible de créer la charge : le praticien spécifié n'existe pas.",
+            status_code=403,
+            detail="Seul un praticien peut créer une charge",
         )
+
+    charge_data = charge_in.model_dump()
+    charge_data["id_praticien"] = int(current_user["id"])
+    charge_in = schemas.ChargeCreate(**charge_data)
+
+    return crud.create_charge(db=db, charge=charge_in)
 
 
 @router.get("/{id_charge}", response_model=schemas.ChargeResponse)
-def read_charge(id_charge: int, db: Session = Depends(get_db)):
+def read_charge(
+    id_charge: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     db_charge = (
         db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
     )
     if db_charge is None:
         raise HTTPException(status_code=404, detail="Charge introuvable.")
+
+    if current_user["role"] == RoleUser.PRATICIEN and db_charge.id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
     return db_charge
 
 
@@ -34,13 +52,20 @@ def update_charge(
     id_charge: int,
     charge_update: schemas.ChargeUpdate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    db_charge = (
+        db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    )
+    if db_charge is None:
+        raise HTTPException(status_code=404, detail="Charge introuvable.")
+
+    if current_user["role"] == RoleUser.PRATICIEN and db_charge.id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
     try:
-        db_charge = crud.update_charge(
-            db, id_charge=id_charge, charge_update=charge_update
-        )
-        if db_charge is None:
-            raise HTTPException(status_code=404, detail="Charge introuvable.")
-        return db_charge
+        return crud.update_charge(db, id_charge=id_charge, charge_update=charge_update)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
