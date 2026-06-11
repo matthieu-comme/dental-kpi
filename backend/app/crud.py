@@ -225,6 +225,24 @@ def update_devis(db: Session, id_devis: int, devis_update: schemas.DevisUpdate):
     return db_devis
 
 
+def delete_devis(db: Session, id_devis: int):
+    db_devis = db.query(models.Devis).filter(models.Devis.id_devis == id_devis).first()
+    if not db_devis:
+        return None
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.SUPPR_DEVIS,
+        details=f"Suppression devis - Patient: {db_devis.id_patient}, Montant: {db_devis.montant}",
+        type_entite=TypeEntite.DEVIS,
+        id_entite=id_devis,
+    )
+    create_log(db=db, log=log)
+
+    db.delete(db_devis)
+    db.commit()
+    return db_devis
+
+
 # CHEQUE
 
 
@@ -266,6 +284,26 @@ def update_cheque(db: Session, id_cheque: int, cheque_update: schemas.ChequeUpda
     )
     create_log(db=db, log=log)
 
+    return db_cheque
+
+
+def delete_cheque(db: Session, id_cheque: int):
+    db_cheque = (
+        db.query(models.Cheque).filter(models.Cheque.id_cheque == id_cheque).first()
+    )
+    if not db_cheque:
+        return None
+
+    log = schemas.LogCreate(
+        type_action=TypeAction.SUPPR_CHEQUE,
+        details=f"Suppression chèque - Patient: {db_cheque.id_patient}, Montant: {db_cheque.montant}",
+        type_entite=TypeEntite.CHEQUE,
+        id_entite=id_cheque,
+    )
+    create_log(db=db, log=log)
+
+    db.delete(db_cheque)
+    db.commit()
     return db_cheque
 
 

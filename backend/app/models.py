@@ -101,6 +101,7 @@ class Journee(Base):
     )
     date_jour: Mapped[date] = mapped_column(index=True, nullable=False)
     nb_patients_vus: Mapped[int] = mapped_column(nullable=False)
+    nb_nouveaux_patients: Mapped[int] = mapped_column(nullable=False)
     nb_rdv_manques_connus: Mapped[int] = mapped_column(nullable=False)
     nb_rdv_manques_nouveaux: Mapped[int] = mapped_column(nullable=False)
     temps_presence_minutes: Mapped[int] = mapped_column(nullable=False)

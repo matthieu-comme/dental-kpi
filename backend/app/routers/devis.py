@@ -78,3 +78,21 @@ def update_devis(
         return crud.update_devis(db, id_devis=id_devis, devis_update=devis_update)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{id_devis}", status_code=204)
+def delete_devis(
+    id_devis: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    db_devis = db.query(models.Devis).filter(models.Devis.id_devis == id_devis).first()
+    if db_devis is None:
+        raise HTTPException(status_code=404, detail="Devis introuvable.")
+
+    if current_user["role"] == RoleUser.PRATICIEN and db_devis.id_praticien != int(
+        current_user["id"]
+    ):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
+    crud.delete_devis(db, id_devis=id_devis)

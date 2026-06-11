@@ -20,13 +20,13 @@ class PraticienBase(BaseModel):
 
 
 class PraticienCreate(PraticienBase):
-    pin_clair: str = Field(pattern=r"^\d{4,6}$")
+    pin_clair: str = Field(pattern=r"^\d{6}$")
 
 
 class PraticienUpdate(BaseModel):
     nom: Optional[str] = None
     est_actif: Optional[bool] = None
-    pin_clair: Optional[str] = Field(default=None, pattern=r"^\d{4,6}$")
+    pin_clair: Optional[str] = Field(default=None, pattern=r"^\d{6}$")
 
 
 class PraticienResponse(PraticienBase):
@@ -112,6 +112,7 @@ class LogResponse(LogBase):
 class JourneeBase(BaseModel):
     date_jour: date = Field(gt=date(2020, 1, 1))
     nb_patients_vus: int = Field(ge=0)
+    nb_nouveaux_patients: int = Field(ge=0)
     nb_rdv_manques_connus: int = Field(ge=0)
     nb_rdv_manques_nouveaux: int = Field(ge=0)
     temps_presence_minutes: int = Field(gt=0)
@@ -122,6 +123,14 @@ class JourneeBase(BaseModel):
         if self.temps_perdu_minutes > self.temps_presence_minutes:
             raise ValueError(
                 "Le temps perdu à cause des absences ne peut pas être supérieur au temps de présence total."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def check_nb_patients(self):
+        if self.nb_nouveaux_patients > self.nb_patients_vus:
+            raise ValueError(
+                "Le nombre de nouveaux patients ne peut pas être supérieur au nombre de patients vus."
             )
         return self
 
