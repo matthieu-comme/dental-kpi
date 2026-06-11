@@ -1,122 +1,58 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import DevisForm from './components/DevisForm'
+import ChequeForm from './components/ChequeForm'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [activeTab, setActiveTab] = useState('devis')
+  const [token, setToken] = useState(localStorage.getItem('access_token') || '')
+
+  function handleTokenChange(e) {
+    const value = e.target.value
+    setToken(value)
+    localStorage.setItem('access_token', value)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="dashboard">
+      <header className="dashboard-header">
+        <h1 className="dashboard-title">Dental KPI</h1>
+        <div className="token-input">
+          <label htmlFor="jwt-token">Token JWT</label>
+          <input
+            id="jwt-token"
+            type="password"
+            value={token}
+            onChange={handleTokenChange}
+            placeholder="Collez votre token ici..."
+          />
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+      </header>
+
+      <nav className="dashboard-nav">
         <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          className={`tab-btn ${activeTab === 'devis' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('devis')}
         >
-          Count is {count}
+          Devis
         </button>
-      </section>
+        <button
+          className={`tab-btn ${activeTab === 'cheque' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('cheque')}
+        >
+          Chèques
+        </button>
+      </nav>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main className="dashboard-main">
+        {!token && (
+          <div className="alert alert--error" role="alert">
+            Veuillez renseigner votre token JWT pour utiliser les formulaires.
+          </div>
+        )}
+        {activeTab === 'devis' && <DevisForm token={token} />}
+        {activeTab === 'cheque' && <ChequeForm token={token} />}
+      </main>
+    </div>
   )
 }
-
-export default App
