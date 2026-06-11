@@ -15,23 +15,14 @@ router = APIRouter(prefix="/api/v1/praticiens", tags=["Praticiens"])
 def create_praticien(
     praticien: schemas.PraticienCreate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
 ):
-    if current_user["role"] != RoleUser.SECRETAIRE:
-        raise HTTPException(
-            status_code=403, detail="Seule la secrétaire peut créer un praticien."
-        )
     return crud.create_praticien(db, praticien)
 
 
 @router.get("/", response_model=list[schemas.PraticienResponse])
 def read_praticiens(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user),
 ):
-    # Seule la secrétaire a le droit de lister l'ensemble des praticiens du cabinet
-    if current_user["role"] != RoleUser.SECRETAIRE:
-        raise HTTPException(status_code=403, detail="Accès non autorisé.")
     return db.query(models.Praticien).all()
 
 

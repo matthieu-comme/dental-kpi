@@ -1,69 +1,75 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = "http://localhost:8000";
 
 const initialState = {
-  id_patient: '',
-  montant: '',
-  date_reception: '',
-  date_depot_prevue: '',
-  statut: 'EN_ATTENTE',
-  id_praticien: '',
-}
+  id_patient: "",
+  montant: "",
+  date_reception: "",
+  date_depot_prevue: "",
+  statut: "EN_ATTENTE",
+};
 
-export default function ChequeForm({ token }) {
-  const [form, setForm] = useState(initialState)
-  const [feedback, setFeedback] = useState(null)
-  const [loading, setLoading] = useState(false)
+export default function ChequeForm({ token, idPraticien }) {
+  const [form, setForm] = useState(initialState);
+  const [feedback, setFeedback] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
-    const { name, value } = e.target
-    setForm(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setLoading(true)
-    setFeedback(null)
+    e.preventDefault();
+    setLoading(true);
+    setFeedback(null);
 
     const payload = {
       id_patient: form.id_patient,
       montant: parseFloat(form.montant),
       date_reception: form.date_reception,
       statut: form.statut,
-      id_praticien: parseInt(form.id_praticien, 10),
-    }
+      id_praticien: idPraticien,
+    };
 
-    if (form.date_depot_prevue) payload.date_depot_prevue = form.date_depot_prevue
+    if (form.date_depot_prevue)
+      payload.date_depot_prevue = form.date_depot_prevue;
 
     try {
       const res = await fetch(`${API_BASE}/api/v1/cheques/`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
         const detail = Array.isArray(data.detail)
-          ? data.detail.map(d => d.msg).join(', ')
-          : data.detail
-        setFeedback({ type: 'error', message: detail || 'Une erreur est survenue.' })
+          ? data.detail.map((d) => d.msg).join(", ")
+          : data.detail;
+        setFeedback({
+          type: "error",
+          message: detail || "Une erreur est survenue.",
+        });
       } else {
         setFeedback({
-          type: 'success',
+          type: "success",
           message: `Chèque #${data.id_cheque} créé avec succès pour le patient ${data.id_patient}.`,
-        })
-        setForm(initialState)
+        });
+        setForm(initialState);
       }
     } catch {
-      setFeedback({ type: 'error', message: 'Erreur réseau. Vérifiez que le serveur est démarré.' })
+      setFeedback({
+        type: "error",
+        message: "Erreur réseau. Vérifiez que le serveur est démarré.",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -78,33 +84,17 @@ export default function ChequeForm({ token }) {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="c-id_patient">ID Patient *</label>
-            <input
-              id="c-id_patient"
-              type="text"
-              name="id_patient"
-              value={form.id_patient}
-              onChange={handleChange}
-              required
-              placeholder="PAT-001"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="c-id_praticien">ID Praticien *</label>
-            <input
-              id="c-id_praticien"
-              type="number"
-              name="id_praticien"
-              value={form.id_praticien}
-              onChange={handleChange}
-              required
-              min="1"
-              placeholder="1"
-            />
-          </div>
+        <div className="form-group">
+          <label htmlFor="c-id_patient">ID Patient *</label>
+          <input
+            id="c-id_patient"
+            type="text"
+            name="id_patient"
+            value={form.id_patient}
+            onChange={handleChange}
+            required
+            placeholder=""
+          />
         </div>
 
         <div className="form-row">
@@ -160,15 +150,15 @@ export default function ChequeForm({ token }) {
               name="date_depot_prevue"
               value={form.date_depot_prevue}
               onChange={handleChange}
-              min={form.date_reception || '2020-01-02'}
+              min={form.date_reception || "2020-01-02"}
             />
           </div>
         </div>
 
         <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? 'Envoi en cours...' : 'Enregistrer le chèque'}
+          {loading ? "Envoi en cours..." : "Enregistrer le chèque"}
         </button>
       </form>
     </div>
-  )
+  );
 }

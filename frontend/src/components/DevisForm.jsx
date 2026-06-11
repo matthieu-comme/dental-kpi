@@ -1,32 +1,31 @@
-import { useState } from 'react'
+import { useState } from "react";
 
-const API_BASE = 'http://localhost:8000'
+const API_BASE = "http://localhost:8000";
 
 const initialState = {
-  id_patient: '',
-  montant: '',
-  temps_previsionnel_minutes: '',
-  date_emission: '',
-  date_decision: '',
-  statut: 'EN_ATTENTE',
-  motif_refus: '',
-  id_praticien: '',
-}
+  id_patient: "",
+  montant: "",
+  temps_previsionnel_minutes: "",
+  date_emission: "",
+  date_decision: "",
+  statut: "EN_ATTENTE",
+  motif_refus: "",
+};
 
-export default function DevisForm({ token }) {
-  const [form, setForm] = useState(initialState)
-  const [feedback, setFeedback] = useState(null)
-  const [loading, setLoading] = useState(false)
+export default function DevisForm({ token, idPraticien }) {
+  const [form, setForm] = useState(initialState);
+  const [feedback, setFeedback] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
-    const { name, value } = e.target
-    setForm(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
-    setLoading(true)
-    setFeedback(null)
+    e.preventDefault();
+    setLoading(true);
+    setFeedback(null);
 
     const payload = {
       id_patient: form.id_patient,
@@ -34,40 +33,46 @@ export default function DevisForm({ token }) {
       temps_previsionnel_minutes: parseInt(form.temps_previsionnel_minutes, 10),
       date_emission: form.date_emission,
       statut: form.statut,
-      id_praticien: parseInt(form.id_praticien, 10),
-    }
+      id_praticien: idPraticien,
+    };
 
-    if (form.date_decision) payload.date_decision = form.date_decision
-    if (form.statut === 'REFUSE') payload.motif_refus = form.motif_refus
+    if (form.date_decision) payload.date_decision = form.date_decision;
+    if (form.statut === "REFUSE") payload.motif_refus = form.motif_refus;
 
     try {
       const res = await fetch(`${API_BASE}/api/v1/devis/`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok) {
         const detail = Array.isArray(data.detail)
-          ? data.detail.map(d => d.msg).join(', ')
-          : data.detail
-        setFeedback({ type: 'error', message: detail || 'Une erreur est survenue.' })
+          ? data.detail.map((d) => d.msg).join(", ")
+          : data.detail;
+        setFeedback({
+          type: "error",
+          message: detail || "Une erreur est survenue.",
+        });
       } else {
         setFeedback({
-          type: 'success',
+          type: "success",
           message: `Devis #${data.id_devis} créé avec succès pour le patient ${data.id_patient}.`,
-        })
-        setForm(initialState)
+        });
+        setForm(initialState);
       }
     } catch {
-      setFeedback({ type: 'error', message: 'Erreur réseau. Vérifiez que le serveur est démarré.' })
+      setFeedback({
+        type: "error",
+        message: "Erreur réseau. Vérifiez que le serveur est démarré.",
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -82,33 +87,17 @@ export default function DevisForm({ token }) {
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <div className="form-row">
-          <div className="form-group">
-            <label htmlFor="d-id_patient">ID Patient *</label>
-            <input
-              id="d-id_patient"
-              type="text"
-              name="id_patient"
-              value={form.id_patient}
-              onChange={handleChange}
-              required
-              placeholder="PAT-001"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="d-id_praticien">ID Praticien *</label>
-            <input
-              id="d-id_praticien"
-              type="number"
-              name="id_praticien"
-              value={form.id_praticien}
-              onChange={handleChange}
-              required
-              min="1"
-              placeholder="1"
-            />
-          </div>
+        <div className="form-group">
+          <label htmlFor="d-id_patient">ID Patient *</label>
+          <input
+            id="d-id_patient"
+            type="text"
+            name="id_patient"
+            value={form.id_patient}
+            onChange={handleChange}
+            required
+            placeholder=""
+          />
         </div>
 
         <div className="form-row">
@@ -137,7 +126,7 @@ export default function DevisForm({ token }) {
               onChange={handleChange}
               required
               min="1"
-              placeholder="60"
+              placeholder=""
             />
           </div>
         </div>
@@ -164,7 +153,7 @@ export default function DevisForm({ token }) {
               name="date_decision"
               value={form.date_decision}
               onChange={handleChange}
-              min={form.date_emission || '2020-01-02'}
+              min={form.date_emission || "2020-01-02"}
             />
           </div>
         </div>
@@ -184,7 +173,7 @@ export default function DevisForm({ token }) {
           </select>
         </div>
 
-        {form.statut === 'REFUSE' && (
+        {form.statut === "REFUSE" && (
           <div className="form-group">
             <label htmlFor="d-motif_refus">Motif de refus *</label>
             <textarea
@@ -194,15 +183,15 @@ export default function DevisForm({ token }) {
               onChange={handleChange}
               required
               rows={3}
-              placeholder="Précisez le motif du refus..."
+              placeholder=""
             />
           </div>
         )}
 
         <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? 'Envoi en cours...' : 'Créer le devis'}
+          {loading ? "Envoi en cours..." : "Créer le devis"}
         </button>
       </form>
     </div>
-  )
+  );
 }
