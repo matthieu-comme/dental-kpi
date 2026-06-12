@@ -329,6 +329,28 @@ def update_journee(db: Session, id_journee: int, journee_update: schemas.Journee
     if not db_journee:
         return None
 
+    update_data = journee_update.model_dump(exclude_unset=True)
+
+    temps_presence = update_data.get(
+        "temps_presence_minutes", db_journee.temps_presence_minutes
+    )
+    temps_perdu = update_data.get("temps_perdu_minutes", db_journee.temps_perdu_minutes)
+
+    if temps_perdu > temps_presence:
+        raise ValueError(
+            "Le temps perdu à cause des absences ne peut pas être supérieur au temps de présence total."
+        )
+
+    nb_patients_vus = update_data.get("nb_patients_vus", db_journee.nb_patients_vus)
+    nb_nouveaux = update_data.get(
+        "nb_nouveaux_patients", getattr(db_journee, "nb_nouveaux_patients", 0)
+    )
+
+    if nb_nouveaux > nb_patients_vus:
+        raise ValueError(
+            "Le nombre de nouveaux patients ne peut pas être supérieur au nombre de patients vus."
+        )
+
     for key, value in journee_update.model_dump(exclude_unset=True).items():
         setattr(db_journee, key, value)
 

@@ -11,7 +11,7 @@ const initialState = {
   lissage_mensuel: true,
 }
 
-export default function ChargeForm({ token, idPraticien }) {
+export default function ChargeForm({ token, idPraticien, onSuccess, embedded = false }) {
   const [form, setForm] = useState(initialState)
   const [feedback, setFeedback] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -60,6 +60,7 @@ export default function ChargeForm({ token, idPraticien }) {
       } else {
         setFeedback({ type: 'success', message: `Charge "${data.designation}" enregistrée avec succès.` })
         setForm(initialState)
+        if (onSuccess) onSuccess()
       }
     } catch {
       setFeedback({ type: 'error', message: 'Erreur réseau. Vérifiez que le serveur est démarré.' })
@@ -68,10 +69,8 @@ export default function ChargeForm({ token, idPraticien }) {
     }
   }
 
-  return (
-    <div className="form-card">
-      <h2>Ajouter une charge</h2>
-
+  const formContent = (
+    <>
       {feedback && (
         <div className={`alert alert--${feedback.type}`} role="alert">
           {feedback.message}
@@ -170,6 +169,15 @@ export default function ChargeForm({ token, idPraticien }) {
           {loading ? 'Envoi en cours...' : 'Ajouter la charge'}
         </button>
       </form>
+    </>
+  )
+
+  if (embedded) return formContent
+
+  return (
+    <div className="form-card">
+      <h2>Ajouter une charge</h2>
+      {formContent}
     </div>
   )
 }

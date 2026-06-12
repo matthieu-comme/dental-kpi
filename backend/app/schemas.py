@@ -142,6 +142,7 @@ class JourneeCreate(JourneeBase):
 class JourneeUpdate(BaseModel):
     date_jour: Optional[date] = Field(gt=date(2020, 1, 1), default=None)
     nb_patients_vus: Optional[int] = Field(default=None, ge=0)
+    nb_nouveaux_patients: Optional[int] = Field(default=None, ge=0)
     nb_rdv_manques_connus: Optional[int] = Field(default=None, ge=0)
     nb_rdv_manques_nouveaux: Optional[int] = Field(default=None, ge=0)
     temps_presence_minutes: Optional[int] = Field(default=None, gt=0)

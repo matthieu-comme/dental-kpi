@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import DevisForm from '../components/DevisForm'
 import ChequeForm from '../components/ChequeForm'
-import ChargeForm from '../components/ChargeForm'
+import ChargeTable from '../components/ChargeTable'
 import ParametresForm from '../components/ParametresForm'
+import ConsultationView from '../components/ConsultationView'
 
 export default function PraticienPage() {
   const { praticienToken, activeUser, hasSecretaireSession, backToSecretaire, logout } = useAuth()
@@ -48,6 +49,12 @@ export default function PraticienPage() {
           Paramètres
         </button>
         <button
+          className={`tab-btn ${activeTab === 'donnees' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('donnees')}
+        >
+          Données
+        </button>
+        <button
           className={`tab-btn ${activeTab === 'kpis' ? 'tab-btn--active' : ''}`}
           onClick={() => setActiveTab('kpis')}
         >
@@ -55,7 +62,7 @@ export default function PraticienPage() {
         </button>
       </nav>
 
-      <main className="dashboard-main">
+      <main className={`dashboard-main ${activeTab === 'donnees' || activeTab === 'charges' ? 'dashboard-main--wide' : ''}`}>
         {activeTab === 'saisie' && (
           <div className="forms-grid">
             <DevisForm token={praticienToken} idPraticien={idPraticien} />
@@ -63,10 +70,17 @@ export default function PraticienPage() {
           </div>
         )}
         {activeTab === 'charges' && (
-          <ChargeForm token={praticienToken} idPraticien={idPraticien} />
+          <ChargeTable token={praticienToken} idPraticien={idPraticien} />
         )}
         {activeTab === 'parametres' && (
           <ParametresForm token={praticienToken} idPraticien={idPraticien} />
+        )}
+        {activeTab === 'donnees' && (
+          <ConsultationView
+            token={praticienToken}
+            isSecretary={false}
+            praticiens={[]}
+          />
         )}
         {activeTab === 'kpis' && (
           <div className="form-card">

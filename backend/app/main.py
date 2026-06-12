@@ -16,6 +16,7 @@ from app.routers import (
 from app.database import SessionLocal, engine
 from app import models, crud, schemas
 from datetime import time
+from app.config import Settings
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -28,10 +29,10 @@ async def lifespan(app: FastAPI):
     try:
         if crud.get_config(db) is None:
             config_initiale = schemas.ConfigSystemeCreate(
-                nom_cabinet="Cabinet Initial",
-                telephone_cabinet="0123456789",
+                nom_cabinet=Settings.NOM_CABINET,
+                telephone_cabinet=Settings.TELEPHONE_CABINET,
                 heure_execution_cron=time(8, 30),
-                password_global_clair="Admin123",  # À modifier par le praticien plus tard via PUT
+                password_global_clair=Settings.GLOBAL_PASSWORD,
             )
             crud.create_config(db, config_initiale)
     finally:
