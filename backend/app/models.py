@@ -193,5 +193,5 @@ class Charge(Base):
 
 
 class RoleUser(str, enum.Enum):
-    SECRETAIRE = "SECR"
-    PRATICIEN = "PRAT"
+    SECRETAIRE = "secretaire"
+    PRATICIEN = "praticien"
