@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 const API_BASE = 'http://localhost:8000'
 
 const INIT_FILTERS = {
+  patientId: '',
   praticienId: '',
   statut: '',
   dateFrom: '',
@@ -13,12 +14,23 @@ const INIT_FILTERS = {
 
 const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACCEPTE: 'Accepté', REFUSE: 'Refusé' }
 
-function StatutBadge({ statut }) {
-  return (
-    <span className={`badge badge--${statut.toLowerCase()}`}>
+function StatutBadge({ statut, motifRefus }) {
+  const badge = (
+    <span className={`badge badge--${statut.toLowerCase()}${statut === 'REFUSE' && motifRefus ? ' badge--has-tooltip' : ''}`}>
       {STATUT_LABELS[statut] ?? statut}
     </span>
   )
+
+  if (statut === 'REFUSE' && motifRefus) {
+    return (
+      <span className="tooltip-wrap">
+        {badge}
+        <span className="tooltip-box">{motifRefus}</span>
+      </span>
+    )
+  }
+
+  return badge
 }
 
 function buildEditForm(item) {
@@ -65,6 +77,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
   useEffect(() => { load() }, [token])
 
   const filtered = useMemo(() => data.filter(d => {
+    if (filters.patientId && !d.id_patient.toLowerCase().includes(filters.patientId.toLowerCase())) return false
     if (filters.praticienId && d.id_praticien !== parseInt(filters.praticienId)) return false
     if (filters.statut && d.statut !== filters.statut) return false
     if (filters.dateFrom && d.date_emission < filters.dateFrom) return false
@@ -179,8 +192,11 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
         </div>
       )}
 
-      {/* Filtres */}
       <div className="filters-bar">
+        <div className="filter-item">
+          <label>N° dossier patient</label>
+          <input type="text" name="patientId" value={filters.patientId} onChange={onFilterChange} placeholder="Rechercher…" />
+        </div>
         {isSecretary && (
           <div className="filter-item">
             <label>Praticien</label>
@@ -256,7 +272,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
                     <td>{d.temps_previsionnel_minutes}</td>
                     <td>{d.date_emission}</td>
                     <td>{d.date_decision ?? '—'}</td>
-                    <td><StatutBadge statut={d.statut} /></td>
+                    <td><StatutBadge statut={d.statut} motifRefus={d.motif_refus} /></td>
                     <td>
                       <div className="action-btns">
                         <button className="btn-action btn-action--edit" onClick={() => openEdit(d)}>

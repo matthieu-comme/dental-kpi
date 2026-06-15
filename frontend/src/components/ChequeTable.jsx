@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 const API_BASE = 'http://localhost:8000'
 
 const INIT_FILTERS = {
+  patientId: '',
   praticienId: '',
   statut: '',
   dateFrom: '',
@@ -62,6 +63,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
   useEffect(() => { load() }, [token])
 
   const filtered = useMemo(() => data.filter(c => {
+    if (filters.patientId && !c.id_patient.toLowerCase().includes(filters.patientId.toLowerCase())) return false
     if (filters.praticienId && c.id_praticien !== parseInt(filters.praticienId)) return false
     if (filters.statut && c.statut !== filters.statut) return false
     if (filters.dateFrom && c.date_reception < filters.dateFrom) return false
@@ -153,6 +155,10 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
       )}
 
       <div className="filters-bar">
+        <div className="filter-item">
+          <label>N° dossier patient</label>
+          <input type="text" name="patientId" value={filters.patientId} onChange={onFilterChange} placeholder="Rechercher…" />
+        </div>
         {isSecretary && (
           <div className="filter-item">
             <label>Praticien</label>

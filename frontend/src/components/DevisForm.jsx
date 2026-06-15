@@ -78,7 +78,7 @@ export default function DevisForm({ token, idPraticien }) {
 
   return (
     <div className="form-card">
-      <h2>Créer un devis</h2>
+      <h2>Enregistrer un devis</h2>
 
       {feedback && (
         <div className={`alert alert--${feedback.type}`} role="alert">
@@ -189,7 +189,7 @@ export default function DevisForm({ token, idPraticien }) {
         )}
 
         <button type="submit" className="btn-primary" disabled={loading}>
-          {loading ? "Envoi en cours..." : "Créer le devis"}
+          {loading ? "Envoi en cours..." : "Enregistrer le devis"}
         </button>
       </form>
     </div>

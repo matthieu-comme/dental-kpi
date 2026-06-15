@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import DevisForm from '../components/DevisForm'
 import ChequeForm from '../components/ChequeForm'
+import ClotureJournee from '../components/ClotureJournee'
 import PraticienModal from '../components/PraticienModal'
 import ConsultationView from '../components/ConsultationView'
 
@@ -35,6 +36,7 @@ export default function SecretairePage() {
   }, [secretaireToken])
 
   const isDonnees = activeTab === 'donnees'
+  const isCloture = activeTab === 'cloture'
 
   return (
     <div className="dashboard">
@@ -93,10 +95,16 @@ export default function SecretairePage() {
         >
           Données
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'cloture' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('cloture')}
+        >
+          Clôture journée
+        </button>
       </nav>
 
       <main className={`dashboard-main ${isDonnees ? 'dashboard-main--wide' : ''}`}>
-        {!isDonnees && !loading && !selectedPraticien && (
+        {!isDonnees && !isCloture && !loading && !selectedPraticien && (
           <div className="alert alert--error">
             Aucun praticien actif trouvé. Veuillez en créer un via l'API.
           </div>
@@ -113,6 +121,19 @@ export default function SecretairePage() {
             isSecretary={true}
             praticiens={praticiens}
           />
+        )}
+        {activeTab === 'cloture' && selectedPraticien && (
+          <ClotureJournee
+            token={secretaireToken}
+            idPraticien={selectedPraticien.id_praticien}
+            praticienNom={selectedPraticien.nom}
+            onClose={() => setActiveTab('devis')}
+          />
+        )}
+        {activeTab === 'cloture' && !loading && !selectedPraticien && (
+          <div className="alert alert--error">
+            Aucun praticien actif trouvé. Veuillez en créer un via l'API.
+          </div>
         )}
       </main>
 

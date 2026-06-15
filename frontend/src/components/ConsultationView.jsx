@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import DevisTable from './DevisTable'
 import ChequeTable from './ChequeTable'
 import JourneeTable from './JourneeTable'
+import LogsTable from './LogsTable'
 
 export default function ConsultationView({ token, isSecretary, praticiens }) {
   const [activeTab, setActiveTab] = useState('devis')
@@ -17,6 +18,7 @@ export default function ConsultationView({ token, isSecretary, praticiens }) {
     { key: 'devis', label: 'Devis' },
     { key: 'cheques', label: 'Chèques' },
     { key: 'journees', label: 'Journées' },
+    { key: 'logs', label: 'Logs' },
   ]
 
   return (
@@ -41,6 +43,9 @@ export default function ConsultationView({ token, isSecretary, praticiens }) {
       )}
       {activeTab === 'journees' && (
         <JourneeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />
+      )}
+      {activeTab === 'logs' && (
+        <LogsTable token={token} />
       )}
     </div>
   )

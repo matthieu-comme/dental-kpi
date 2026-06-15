@@ -733,3 +733,255 @@ body {
 .modal-card--wide {
   max-width: 560px;
 }
+
+/* ─── Clôture journée ──────────────────────────────────────────────────────── */
+
+.cloture-journee {
+  width: 100%;
+}
+
+.cloture-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.cloture-step {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: #a0aec0;
+}
+
+.cloture-step__dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #718096;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+}
+
+.cloture-step__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cloture-step__line {
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+  margin: 0 1rem;
+}
+
+.cloture-step--active .cloture-step__dot {
+  background: #3182ce;
+  color: white;
+}
+
+.cloture-step--active .cloture-step__label {
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.cloture-step--done .cloture-step__dot {
+  background: #48bb78;
+  color: white;
+}
+
+.cloture-step--done .cloture-step__label {
+  color: #718096;
+}
+
+.cloture-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.cloture-section-header h2 {
+  margin-bottom: 0;
+}
+
+.cloture-praticien-tag {
+  background: #ebf8ff;
+  color: #2b6cb0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cloture-form-card {
+  max-width: 560px;
+}
+
+.cloture-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.cloture-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .cloture-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cloture-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.cloture-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.cloture-card__header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+}
+
+.cloture-count {
+  background: #e2e8f0;
+  color: #4a5568;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.cloture-empty {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem 0;
+  margin: 0;
+}
+
+.cloture-table-wrap {
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.cloture-add-btn {
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: center;
+  border-style: dashed !important;
+  color: #718096;
+}
+
+.cloture-add-btn:hover {
+  border-color: #3182ce !important;
+  color: #3182ce;
+}
+
+.cloture-add-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.cloture-add-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.cloture-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.cloture-recap-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+/* ─── Tooltip ───────────────────────────────────────────────────────────────── */
+
+.tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.tooltip-box {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: #1a202c;
+  color: #f7fafc;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  width: max-content;
+  max-width: 240px;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 200;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  transition: opacity 0.15s, transform 0.15s, visibility 0.15s;
+}
+
+.tooltip-box::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1a202c;
+}
+
+.tooltip-wrap:hover .tooltip-box {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+  transition-delay: 0.08s;
+}
+
+.badge--has-tooltip {
+  cursor: help;
+  text-decoration: underline dashed 1px;
+  text-underline-offset: 2px;
+}

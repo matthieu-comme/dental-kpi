@@ -18,6 +18,7 @@ async function fetchToken(username, password) {
 export default function LoginPage() {
   const { loginSecretaire, loginPraticien } = useAuth()
   const [mode, setMode] = useState('secretaire')
+  const [nomCabinet, setNomCabinet] = useState('')
 
   const [secPassword, setSecPassword] = useState('')
   const [secError, setSecError] = useState('')
@@ -28,6 +29,13 @@ export default function LoginPage() {
   const [pratPin, setPratPin] = useState('')
   const [pratError, setPratError] = useState('')
   const [pratLoading, setPratLoading] = useState(false)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/systeme/config`)
+      .then(r => r.json())
+      .then(data => { if (data.nom_cabinet) setNomCabinet(data.nom_cabinet) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (mode !== 'praticien') return
@@ -74,7 +82,7 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-logo">
           <h1>Dental KPI</h1>
-          <p>Tableau de bord cabinet dentaire</p>
+          <p>{nomCabinet || 'Tableau de bord cabinet dentaire'}</p>
         </div>
 
         <div className="login-tabs">
@@ -104,7 +112,7 @@ export default function LoginPage() {
                 onChange={e => setSecPassword(e.target.value)}
                 required
                 autoFocus
-                placeholder="Mot de passe global"
+                placeholder=""
               />
             </div>
             <button type="submit" className="btn-primary btn-full" disabled={secLoading}>
