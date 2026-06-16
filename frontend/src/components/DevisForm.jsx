@@ -2,11 +2,15 @@ import { useState } from "react";
 
 const API_BASE = "http://localhost:8000";
 
+function todayStr() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
 const initialState = {
   id_patient: "",
   montant: "",
   temps_previsionnel_minutes: "",
-  date_emission: "",
+  date_emission: todayStr(),
   date_decision: "",
   statut: "EN_ATTENTE",
   motif_refus: "",
@@ -19,7 +23,11 @@ export default function DevisForm({ token, idPraticien }) {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [name]: name === "id_patient" ? value.replace(/\D/g, "") : value };
+      if (name === "statut" && value === "EN_ATTENTE") next.date_decision = "";
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
@@ -92,6 +100,7 @@ export default function DevisForm({ token, idPraticien }) {
           <input
             id="d-id_patient"
             type="text"
+            inputMode="numeric"
             name="id_patient"
             value={form.id_patient}
             onChange={handleChange}
@@ -131,7 +140,7 @@ export default function DevisForm({ token, idPraticien }) {
           </div>
         </div>
 
-        <div className="form-row">
+        <div>
           <div className="form-group">
             <label htmlFor="d-date_emission">Date d'émission *</label>
             <input
@@ -142,18 +151,6 @@ export default function DevisForm({ token, idPraticien }) {
               onChange={handleChange}
               required
               min="2020-01-02"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="d-date_decision">Date de décision</label>
-            <input
-              id="d-date_decision"
-              type="date"
-              name="date_decision"
-              value={form.date_decision}
-              onChange={handleChange}
-              min={form.date_emission || "2020-01-02"}
             />
           </div>
         </div>
@@ -172,6 +169,21 @@ export default function DevisForm({ token, idPraticien }) {
             <option value="REFUSE">Refusé</option>
           </select>
         </div>
+
+        {form.statut !== "EN_ATTENTE" && (
+          <div className="form-group">
+            <label htmlFor="d-date_decision">Date de décision *</label>
+            <input
+              id="d-date_decision"
+              type="date"
+              name="date_decision"
+              value={form.date_decision}
+              onChange={handleChange}
+              min={form.date_emission || "2020-01-02"}
+              required
+            />
+          </div>
+        )}
 
         {form.statut === "REFUSE" && (
           <div className="form-group">

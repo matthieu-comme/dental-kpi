@@ -167,8 +167,8 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
                   {isSecretary && <th>Praticien</th>}
                   <th>Patients vus</th>
                   <th>Nouveaux</th>
-                  <th>RDV manqués connus</th>
-                  <th>RDV manqués nouveaux</th>
+                  <th>RDV non-honorés connus</th>
+                  <th>RDV non-honorés nouveaux</th>
                   <th>Présence (min)</th>
                   <th>Actions</th>
                 </tr>
@@ -227,11 +227,11 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>RDV manqués connus *</label>
+                  <label>RDV non-honorés connus *</label>
                   <input type="number" name="nb_rdv_manques_connus" value={editForm.nb_rdv_manques_connus} onChange={onEditChange} required min="0" />
                 </div>
                 <div className="form-group">
-                  <label>RDV manqués nouveaux *</label>
+                  <label>RDV non-honorés nouveaux *</label>
                   <input type="number" name="nb_rdv_manques_nouveaux" value={editForm.nb_rdv_manques_nouveaux} onChange={onEditChange} required min="0" />
                 </div>
               </div>

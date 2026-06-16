@@ -86,7 +86,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
 
   function onEditChange(e) {
     const { name, value } = e.target
-    setEditForm(prev => ({ ...prev, [name]: value }))
+    setEditForm(prev => ({ ...prev, [name]: name === 'id_patient' ? value.replace(/\D/g, '') : value }))
   }
 
   async function handleEditSubmit(e) {
@@ -262,7 +262,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
               {editError && <div className="alert alert--error">{editError}</div>}
               <div className="form-group">
                 <label>ID Patient *</label>
-                <input type="text" name="id_patient" value={editForm.id_patient} onChange={onEditChange} required />
+                <input type="text" inputMode="numeric" name="id_patient" value={editForm.id_patient} onChange={onEditChange} required />
               </div>
               <div className="form-row">
                 <div className="form-group">

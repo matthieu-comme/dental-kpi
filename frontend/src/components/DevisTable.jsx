@@ -101,7 +101,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
   function onEditChange(e) {
     const { name, value } = e.target
     setEditForm(prev => {
-      const next = { ...prev, [name]: value }
+      const next = { ...prev, [name]: name === 'id_patient' ? value.replace(/\D/g, '') : value }
       if (name === 'statut' && value === 'EN_ATTENTE') next.date_decision = ''
       return next
     })
@@ -135,9 +135,9 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
       date_emission: editForm.date_emission,
       statut: editForm.statut,
     }
-    if (editForm.statut !== 'EN_ATTENTE' && editForm.date_decision) {
-      payload.date_decision = editForm.date_decision
-    }
+    payload.date_decision = editForm.statut === 'EN_ATTENTE'
+      ? null
+      : (editForm.date_decision || null)
     if (editForm.statut === 'REFUSE') payload.motif_refus = editForm.motif_refus
 
     try {
@@ -304,7 +304,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
               {editError && <div className="alert alert--error">{editError}</div>}
               <div className="form-group">
                 <label>ID Patient *</label>
-                <input type="text" name="id_patient" value={editForm.id_patient} onChange={onEditChange} required />
+                <input type="text" inputMode="numeric" name="id_patient" value={editForm.id_patient} onChange={onEditChange} required />
               </div>
               <div className="form-row">
                 <div className="form-group">

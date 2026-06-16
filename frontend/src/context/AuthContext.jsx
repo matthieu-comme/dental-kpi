@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
@@ -79,6 +79,21 @@ export function AuthProvider({ children }) {
     setPraticienToken(null)
     setView('login')
   }
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const active = view === 'praticien' ? praticienToken : secretaireToken
+      if (!isTokenValid(active)) {
+        localStorage.removeItem('dental_sec_token')
+        localStorage.removeItem('dental_prat_token')
+        localStorage.removeItem('dental_last_view')
+        setSecretaireToken(null)
+        setPraticienToken(null)
+        setView('login')
+      }
+    }, 60_000)
+    return () => clearInterval(id)
+  }, [view, secretaireToken, praticienToken])
 
   const activeToken = view === 'praticien' ? praticienToken : secretaireToken
   const activeUser = activeToken ? decodeToken(activeToken) : null

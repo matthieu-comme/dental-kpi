@@ -1,0 +1,15 @@
+date d'émission de devis et date de reception par défaut à la aujourd'hui
+date de decision s'affiche seulement statut = accepte ou refuse
+
+date décision doit se reset quand statut en attente
+date depot prévue doit être a date reception + 30 par défaut
+
+formulaire cloture de journée: remplacer temps de présence par heure de départ (défaut 9h) et heure de départ (défaut 18h30)
+le backend recoit les données et calcule le temps de présence en min.
+
+remplacer rdv manqués par rdv non honorés
+rdv manqués ? oui non. si oui, on affiche les inputs connus / nouveaux. si non, rien ne se passe.
+
+ajouter au début des placeholders "ex: 480"
+
+saisie rapide de devis et chèque en picture in picture

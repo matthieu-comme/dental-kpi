@@ -12,6 +12,11 @@ function apiErr(data) {
     : (data?.detail || 'Erreur inconnue')
 }
 
+function timeToMinutes(t) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 function StepIndicator({ step }) {
@@ -36,9 +41,11 @@ const INIT_JOURNEE = {
   date_jour: TODAY,
   nb_patients_vus: '',
   nb_nouveaux_patients: '',
+  rdv_non_honores: false,
   nb_rdv_manques_connus: '',
   nb_rdv_manques_nouveaux: '',
-  temps_presence_minutes: '',
+  heure_arrivee: '09:00',
+  heure_depart: '18:30',
   temps_perdu_minutes: '',
 }
 
@@ -50,10 +57,36 @@ function JourneeStep({ token, idPraticien, praticienNom, onSuccess }) {
 
   useEffect(() => { setForm(INIT_JOURNEE); setConflict(null); setError('') }, [idPraticien])
 
+  useEffect(() => {
+    if (!form.date_jour) return
+    let cancelled = false
+    fetch(`${API_BASE}/api/v1/journees/`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : [])
+      .then(all => {
+        if (cancelled) return
+        const existing = Array.isArray(all)
+          ? all.find(j => j.id_praticien === idPraticien && j.date_jour === form.date_jour)
+          : null
+        if (existing) {
+          setConflict({ id_journee: existing.id_journee })
+          setError(`Une journée existe déjà pour ${praticienNom} à la date du ${form.date_jour}.`)
+        }
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [form.date_jour, idPraticien, token])
+
   function onChange(e) {
-    const { name, value } = e.target
+    const { name, value, type, checked } = e.target
     if (name === 'date_jour') { setConflict(null); setError('') }
-    setForm(p => ({ ...p, [name]: value }))
+    setForm(p => {
+      const next = { ...p, [name]: type === 'checkbox' ? checked : value }
+      if (name === 'rdv_non_honores' && !checked) {
+        next.nb_rdv_manques_connus = ''
+        next.nb_rdv_manques_nouveaux = ''
+      }
+      return next
+    })
   }
 
   function buildPayload() {
@@ -62,17 +95,28 @@ function JourneeStep({ token, idPraticien, praticienNom, onSuccess }) {
       date_jour: form.date_jour,
       nb_patients_vus: parseInt(form.nb_patients_vus, 10),
       nb_nouveaux_patients: parseInt(form.nb_nouveaux_patients, 10),
-      nb_rdv_manques_connus: parseInt(form.nb_rdv_manques_connus, 10),
-      nb_rdv_manques_nouveaux: parseInt(form.nb_rdv_manques_nouveaux, 10),
-      temps_presence_minutes: parseInt(form.temps_presence_minutes, 10),
+      nb_rdv_manques_connus: form.rdv_non_honores ? parseInt(form.nb_rdv_manques_connus, 10) : 0,
+      nb_rdv_manques_nouveaux: form.rdv_non_honores ? parseInt(form.nb_rdv_manques_nouveaux, 10) : 0,
+      temps_presence_minutes: timeToMinutes(form.heure_depart) - timeToMinutes(form.heure_arrivee),
       temps_perdu_minutes: parseInt(form.temps_perdu_minutes, 10),
     }
   }
 
+  function validateTimes() {
+    const presenceMin = timeToMinutes(form.heure_depart) - timeToMinutes(form.heure_arrivee)
+    if (presenceMin <= 0) return "L'heure de départ doit être après l'heure d'arrivée."
+    const perdu = parseInt(form.temps_perdu_minutes, 10)
+    if (!isNaN(perdu) && perdu > presenceMin) return `Le temps perdu (${perdu} min) ne peut pas dépasser le temps de présence (${presenceMin} min).`
+    return null
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    const timeErr = validateTimes()
+    if (timeErr) { setError(timeErr); return }
+    if (conflict) return  // le conflit est déjà affiché, l'utilisateur doit cliquer "Mettre à jour"
+    setLoading(true)
     setConflict(null)
 
     try {
@@ -109,6 +153,8 @@ function JourneeStep({ token, idPraticien, praticienNom, onSuccess }) {
 
   async function handleForceUpdate() {
     if (!conflict) return
+    const timeErr = validateTimes()
+    if (timeErr) { setError(timeErr); return }
     setLoading(true)
     setError('')
     const { id_praticien, date_jour, ...updatePayload } = buildPayload()
@@ -152,25 +198,48 @@ function JourneeStep({ token, idPraticien, praticienNom, onSuccess }) {
             <input type="number" name="nb_nouveaux_patients" value={form.nb_nouveaux_patients} onChange={onChange} required min="0" placeholder="0" />
           </div>
         </div>
+        <div className="form-group form-group--checkbox">
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              name="rdv_non_honores"
+              checked={form.rdv_non_honores}
+              onChange={onChange}
+            />
+            <span>Des RDV ont été non honorés ?</span>
+          </label>
+        </div>
+        {form.rdv_non_honores && (
+          <div className="form-row">
+            <div className="form-group">
+              <label>RDV non-honorés connus *</label>
+              <input type="number" name="nb_rdv_manques_connus" value={form.nb_rdv_manques_connus} onChange={onChange} required min="0" placeholder="0" />
+            </div>
+            <div className="form-group">
+              <label>RDV non-honorés nouveaux *</label>
+              <input type="number" name="nb_rdv_manques_nouveaux" value={form.nb_rdv_manques_nouveaux} onChange={onChange} required min="0" placeholder="0" />
+            </div>
+          </div>
+        )}
         <div className="form-row">
           <div className="form-group">
-            <label>RDV manqués connus *</label>
-            <input type="number" name="nb_rdv_manques_connus" value={form.nb_rdv_manques_connus} onChange={onChange} required min="0" placeholder="0" />
+            <label>Heure d'arrivée *</label>
+            <input type="time" name="heure_arrivee" value={form.heure_arrivee} onChange={onChange} required />
           </div>
           <div className="form-group">
-            <label>RDV manqués nouveaux *</label>
-            <input type="number" name="nb_rdv_manques_nouveaux" value={form.nb_rdv_manques_nouveaux} onChange={onChange} required min="0" placeholder="0" />
+            <label>Heure de départ *</label>
+            <input type="time" name="heure_depart" value={form.heure_depart} onChange={onChange} required />
           </div>
         </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Temps de présence (min) *</label>
-            <input type="number" name="temps_presence_minutes" value={form.temps_presence_minutes} onChange={onChange} required min="1" placeholder="480" />
-          </div>
-          <div className="form-group">
-            <label>Temps perdu (min) *</label>
-            <input type="number" name="temps_perdu_minutes" value={form.temps_perdu_minutes} onChange={onChange} required min="0" placeholder="0" />
-          </div>
+        {(() => {
+          const diff = timeToMinutes(form.heure_depart) - timeToMinutes(form.heure_arrivee)
+          if (diff <= 0) return <p className="time-hint time-hint--error">⚠ L'heure de départ doit être après l'heure d'arrivée</p>
+          const h = Math.floor(diff / 60), m = diff % 60
+          return <p className="time-hint">→ Temps de présence : {diff} min ({h}h{m > 0 ? String(m).padStart(2, '0') : '00'})</p>
+        })()}
+        <div className="form-group">
+          <label>Temps perdu (min) *</label>
+          <input type="number" name="temps_perdu_minutes" value={form.temps_perdu_minutes} onChange={onChange} required min="0" placeholder="0" />
         </div>
         <div className="cloture-form-actions">
           {conflict && (
@@ -225,7 +294,7 @@ function DevisFields({ form, onChange, prefix = '' }) {
     <>
       <div className="form-group">
         <label>ID Patient *</label>
-        <input type="text" name="id_patient" id={`${prefix}id_patient`} value={form.id_patient} onChange={onChange} required />
+        <input type="text" inputMode="numeric" name="id_patient" id={`${prefix}id_patient`} value={form.id_patient} onChange={onChange} required />
       </div>
       <div className="form-row">
         <div className="form-group">
@@ -297,7 +366,7 @@ function MiniDevisSection({ token, idPraticien, dateJour }) {
   function onAddChange(e) {
     const { name, value } = e.target
     setAddForm(p => {
-      const next = { ...p, [name]: value }
+      const next = { ...p, [name]: name === 'id_patient' ? value.replace(/\D/g, '') : value }
       if (name === 'statut' && value === 'EN_ATTENTE') { next.date_decision = ''; next.motif_refus = '' }
       return next
     })
@@ -329,7 +398,7 @@ function MiniDevisSection({ token, idPraticien, dateJour }) {
   function onEditChange(e) {
     const { name, value } = e.target
     setEditForm(p => {
-      const next = { ...p, [name]: value }
+      const next = { ...p, [name]: name === 'id_patient' ? value.replace(/\D/g, '') : value }
       if (name === 'statut' && value === 'EN_ATTENTE') { next.date_decision = ''; next.motif_refus = '' }
       return next
     })
@@ -463,7 +532,7 @@ function ChequeFields({ form, onChange }) {
     <>
       <div className="form-group">
         <label>ID Patient *</label>
-        <input type="text" name="id_patient" value={form.id_patient} onChange={onChange} required />
+        <input type="text" inputMode="numeric" name="id_patient" value={form.id_patient} onChange={onChange} required />
       </div>
       <div className="form-row">
         <div className="form-group">
@@ -520,7 +589,7 @@ function MiniChequeSection({ token, idPraticien, dateJour }) {
 
   const onChange = (setter) => (e) => {
     const { name, value } = e.target
-    setter(p => ({ ...p, [name]: value }))
+    setter(p => ({ ...p, [name]: name === 'id_patient' ? value.replace(/\D/g, '') : value }))
   }
 
   async function handleAdd(e) {

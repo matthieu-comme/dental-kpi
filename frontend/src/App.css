@@ -728,6 +728,19 @@ body {
   color: #c53030;
 }
 
+/* ─── Indicateur de temps calculé ─────────────────────────────────────────── */
+
+.time-hint {
+  font-size: 0.8125rem;
+  color: #718096;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.time-hint--error {
+  color: #c53030;
+}
+
 /* ─── Modale large (formulaires d'édition) ─────────────────────────────────── */
 
 .modal-card--wide {

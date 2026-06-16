@@ -2,11 +2,21 @@ import { useState } from "react";
 
 const API_BASE = "http://localhost:8000";
 
+function todayStr() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+function addDays(dateStr, days) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  return date.toLocaleDateString("en-CA");
+}
+
 const initialState = {
   id_patient: "",
   montant: "",
-  date_reception: "",
-  date_depot_prevue: "",
+  date_reception: todayStr(),
+  date_depot_prevue: addDays(todayStr(), 30),
   statut: "EN_ATTENTE",
 };
 
@@ -17,7 +27,13 @@ export default function ChequeForm({ token, idPraticien }) {
 
   function handleChange(e) {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [name]: name === "id_patient" ? value.replace(/\D/g, "") : value };
+      if (name === "date_reception" && value) {
+        next.date_depot_prevue = addDays(value, 30);
+      }
+      return next;
+    });
   }
 
   async function handleSubmit(e) {
@@ -89,6 +105,7 @@ export default function ChequeForm({ token, idPraticien }) {
           <input
             id="c-id_patient"
             type="text"
+            inputMode="numeric"
             name="id_patient"
             value={form.id_patient}
             onChange={handleChange}
