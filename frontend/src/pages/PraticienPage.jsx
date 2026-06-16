@@ -5,19 +5,42 @@ import ChequeForm from '../components/ChequeForm'
 import ChargeTable from '../components/ChargeTable'
 import ParametresForm from '../components/ParametresForm'
 import ConsultationView from '../components/ConsultationView'
+import PipContent from '../components/PipContent'
+import { usePip } from '../hooks/usePip'
 
 export default function PraticienPage() {
   const { praticienToken, activeUser, hasSecretaireSession, backToSecretaire, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('saisie')
+  const { isOpen: isPipOpen, isSupported: isPipSupported, open: openPip, close: closePip } = usePip()
 
   // activeUser.sub contient l'id du praticien (string dans le JWT)
   const idPraticien = parseInt(activeUser?.sub, 10)
+
+  function handlePip() {
+    if (isPipOpen) { closePip(); return }
+    openPip(
+      <PipContent
+        token={praticienToken}
+        isSecretary={false}
+        praticiens={[]}
+        initialPraticienId={idPraticien}
+      />
+    )
+  }
 
   return (
     <div className="dashboard">
       <header className="dashboard-header">
         <h1 className="dashboard-title">Dental KPI — Praticien</h1>
         <div className="header-actions">
+          {isPipSupported && (
+            <button
+              className={`btn-pip${isPipOpen ? ' btn-pip--active' : ''}`}
+              onClick={handlePip}
+            >
+              {isPipOpen ? '⚡ Fermer saisie rapide' : '⚡ Mode rapide'}
+            </button>
+          )}
           {hasSecretaireSession && (
             <button className="btn-outline" onClick={backToSecretaire}>
               ← Espace secrétaire

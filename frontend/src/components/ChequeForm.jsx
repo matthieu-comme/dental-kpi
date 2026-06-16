@@ -20,7 +20,7 @@ const initialState = {
   statut: "EN_ATTENTE",
 };
 
-export default function ChequeForm({ token, idPraticien }) {
+export default function ChequeForm({ token, idPraticien, embedded = false }) {
   const [form, setForm] = useState(initialState);
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -89,10 +89,8 @@ export default function ChequeForm({ token, idPraticien }) {
     }
   }
 
-  return (
-    <div className="form-card">
-      <h2>Enregistrer un chèque</h2>
-
+  const formContent = (
+    <>
       {feedback && (
         <div className={`alert alert--${feedback.type}`} role="alert">
           {feedback.message}
@@ -172,10 +170,23 @@ export default function ChequeForm({ token, idPraticien }) {
           </div>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button
+          type="submit"
+          className={`btn-primary${embedded ? " btn-full" : ""}`}
+          disabled={loading}
+        >
           {loading ? "Envoi en cours..." : "Enregistrer le chèque"}
         </button>
       </form>
+    </>
+  );
+
+  if (embedded) return formContent;
+
+  return (
+    <div className="form-card">
+      <h2>Enregistrer un chèque</h2>
+      {formContent}
     </div>
   );
 }

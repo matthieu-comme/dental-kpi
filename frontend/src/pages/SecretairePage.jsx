@@ -5,6 +5,8 @@ import ChequeForm from '../components/ChequeForm'
 import ClotureJournee from '../components/ClotureJournee'
 import PraticienModal from '../components/PraticienModal'
 import ConsultationView from '../components/ConsultationView'
+import PipContent from '../components/PipContent'
+import { usePip } from '../hooks/usePip'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -15,6 +17,19 @@ export default function SecretairePage() {
   const [activeTab, setActiveTab] = useState('devis')
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const { isOpen: isPipOpen, isSupported: isPipSupported, open: openPip, close: closePip } = usePip()
+
+  function handlePip() {
+    if (isPipOpen) { closePip(); return }
+    openPip(
+      <PipContent
+        token={secretaireToken}
+        isSecretary={true}
+        praticiens={praticiens}
+        initialPraticienId={selectedPraticien?.id_praticien ?? null}
+      />
+    )
+  }
 
   useEffect(() => {
     async function loadPraticiens() {
@@ -43,6 +58,14 @@ export default function SecretairePage() {
       <header className="dashboard-header">
         <h1 className="dashboard-title">Dental KPI — Secrétaire</h1>
         <div className="header-actions">
+          {isPipSupported && (
+            <button
+              className={`btn-pip${isPipOpen ? ' btn-pip--active' : ''}`}
+              onClick={handlePip}
+            >
+              {isPipOpen ? '⚡ Fermer saisie rapide' : '⚡ Mode rapide'}
+            </button>
+          )}
           <button className="btn-outline" onClick={() => setShowModal(true)}>
             Accès Praticien
           </button>

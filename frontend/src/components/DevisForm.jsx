@@ -16,7 +16,7 @@ const initialState = {
   motif_refus: "",
 };
 
-export default function DevisForm({ token, idPraticien }) {
+export default function DevisForm({ token, idPraticien, embedded = false }) {
   const [form, setForm] = useState(initialState);
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -84,10 +84,8 @@ export default function DevisForm({ token, idPraticien }) {
     }
   }
 
-  return (
-    <div className="form-card">
-      <h2>Enregistrer un devis</h2>
-
+  const formContent = (
+    <>
       {feedback && (
         <div className={`alert alert--${feedback.type}`} role="alert">
           {feedback.message}
@@ -200,10 +198,23 @@ export default function DevisForm({ token, idPraticien }) {
           </div>
         )}
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button
+          type="submit"
+          className={`btn-primary${embedded ? " btn-full" : ""}`}
+          disabled={loading}
+        >
           {loading ? "Envoi en cours..." : "Enregistrer le devis"}
         </button>
       </form>
+    </>
+  );
+
+  if (embedded) return formContent;
+
+  return (
+    <div className="form-card">
+      <h2>Enregistrer un devis</h2>
+      {formContent}
     </div>
   );
 }
