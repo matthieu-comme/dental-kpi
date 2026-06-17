@@ -12,6 +12,7 @@ from app.routers import (
     charges,
     performances,
     auth,
+    kpis,
 )
 from app.database import SessionLocal, engine
 from app import models, crud, schemas
@@ -58,6 +59,7 @@ app.include_router(devis.router)
 app.include_router(cheques.router)
 app.include_router(charges.router)
 app.include_router(performances.router)
+app.include_router(kpis.router)
 
 
 @app.get("/")

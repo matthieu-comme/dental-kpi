@@ -5,6 +5,7 @@ import ChequeForm from '../components/ChequeForm'
 import ChargeTable from '../components/ChargeTable'
 import ParametresForm from '../components/ParametresForm'
 import ConsultationView from '../components/ConsultationView'
+import KpiView from '../components/KpiView'
 import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
 
@@ -85,7 +86,7 @@ export default function PraticienPage() {
         </button>
       </nav>
 
-      <main className={`dashboard-main ${activeTab === 'donnees' || activeTab === 'charges' ? 'dashboard-main--wide' : ''}`}>
+      <main className={`dashboard-main ${['donnees', 'charges', 'kpis'].includes(activeTab) ? 'dashboard-main--wide' : ''}`}>
         {activeTab === 'saisie' && (
           <div className="forms-grid">
             <DevisForm token={praticienToken} idPraticien={idPraticien} />
@@ -106,10 +107,7 @@ export default function PraticienPage() {
           />
         )}
         {activeTab === 'kpis' && (
-          <div className="form-card">
-            <h2>Indicateurs de performance</h2>
-            <p className="text-muted">Les KPIs seront disponibles ici une fois les routes backend implémentées.</p>
-          </div>
+          <KpiView token={praticienToken} idPraticien={idPraticien} />
         )}
       </main>
     </div>

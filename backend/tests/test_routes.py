@@ -1,92 +1,7 @@
 import pytest
-from datetime import time
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app.main import app
 from app import models
-from app.database import get_db
-from app.utils import hash_pin
 from app.routers.auth import create_access_token
-
-SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-SEC_PASSWORD = "motdepasse"
-PRAT_PIN = "111111"
-SEC_USERNAME = "secretaire"
-
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-client = TestClient(app)
-
-
-@pytest.fixture(autouse=True)
-def setup_db():
-    models.Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
-
-    db.add(models.ConfigSysteme(
-        id_config=1,
-        password_global_hash=hash_pin(SEC_PASSWORD),
-        nom_cabinet="Cabinet Test",
-        telephone_cabinet="0123456789",
-        heure_execution_cron=time(8, 0),
-    ))
-
-    praticien = models.Praticien(nom="Dr. Test", pin_hash=hash_pin(PRAT_PIN), est_actif=True)
-    db.add(praticien)
-    db.flush()
-
-    db.add(models.ParametresPraticien(
-        id_praticien=praticien.id_praticien,
-        taux_horaire_cible=300.0,
-        ca_mensuel_cible=20000.0,
-        delai_relance_jours=15,
-        seuil_devis_sms=500.0,
-        seuil_devis_assistante=1500.0,
-    ))
-    db.commit()
-    db.close()
-
-    yield
-
-    models.Base.metadata.drop_all(bind=engine)
-
-
-@pytest.fixture
-def praticien_id():
-    db = TestingSessionLocal()
-    p = db.query(models.Praticien).first()
-    db.close()
-    return p.id_praticien
-
-
-@pytest.fixture
-def sec_headers():
-    token = create_access_token({"sub": SEC_USERNAME, "role": "secretaire"})
-    return {"Authorization": f"Bearer {token}"}
-
-
-@pytest.fixture
-def prat_headers(praticien_id):
-    token = create_access_token({"sub": str(praticien_id), "role": "praticien"})
-    return {"Authorization": f"Bearer {token}"}
+from tests.conftest import client, TestingSessionLocal, SEC_PASSWORD, PRAT_PIN, SEC_USERNAME
 
 
 # --- helpers payload ---
@@ -257,7 +172,9 @@ def test_update_praticien(praticien_id, sec_headers):
 def test_praticien_cannot_access_other_praticien(praticien_id):
     client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "333333"})
     db = TestingSessionLocal()
-    autre_id = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first().id_praticien
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
+    assert autre is not None
+    autre_id = autre.id_praticien
     db.close()
 
     token = create_access_token({"sub": str(praticien_id), "role": "praticien"})
@@ -363,7 +280,9 @@ def test_delete_devis_not_found(sec_headers):
 def test_praticien_cannot_access_other_devis(praticien_id, sec_headers):
     client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "444444"})
     db = TestingSessionLocal()
-    autre_id = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first().id_praticien
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
+    assert autre is not None
+    autre_id = autre.id_praticien
     db.close()
 
     devis = client.post("/api/v1/devis/", json=_devis_payload(autre_id), headers=sec_headers).json()
@@ -423,7 +342,9 @@ def test_delete_cheque_not_found(sec_headers):
 def test_praticien_cannot_access_other_cheque(praticien_id, sec_headers):
     client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "555555"})
     db = TestingSessionLocal()
-    autre_id = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first().id_praticien
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
+    assert autre is not None
+    autre_id = autre.id_praticien
     db.close()
 
     cheque = client.post("/api/v1/cheques/", json=_cheque_payload(autre_id), headers=sec_headers).json()

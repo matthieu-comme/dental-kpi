@@ -120,6 +120,7 @@ def test_update_praticien_preserves_pin(db):
     updated = crud.update_praticien(
         db, praticien.id_praticien, schemas.PraticienUpdate(nom="Dr. B")
     )
+    assert updated is not None
     assert updated.nom == "Dr. B"
     assert updated.pin_hash == original_hash
 
@@ -268,6 +269,7 @@ def test_update_devis_clears_motif_refus(db, praticien):
     updated = crud.update_devis(
         db, devis.id_devis, schemas.DevisUpdate(statut=models.StatutDevis.ACCEPTE)
     )
+    assert updated is not None
     assert updated.motif_refus is None
 
 
@@ -649,11 +651,13 @@ def test_update_praticien_est_actif(db):
     desactive = crud.update_praticien(
         db, praticien.id_praticien, schemas.PraticienUpdate(est_actif=False)
     )
+    assert desactive is not None
     assert desactive.est_actif is False
 
     reactive = crud.update_praticien(
         db, praticien.id_praticien, schemas.PraticienUpdate(est_actif=True)
     )
+    assert reactive is not None
     assert reactive.est_actif is True
 
 
