@@ -1,8 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.routers import (
     devis,
     praticiens,
@@ -62,11 +64,11 @@ app.include_router(performances.router)
 app.include_router(kpis.router)
 
 
-@app.get("/")
-def root():
-    return {"Hello": "World"}
-
-
 @app.get("/api/v1/status")
 def read_root():
     return {"status": "Back-end opérationnel"}
+
+
+_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+if os.path.exists(_dist):
+    app.mount("/", StaticFiles(directory=_dist, html=True), name="spa")

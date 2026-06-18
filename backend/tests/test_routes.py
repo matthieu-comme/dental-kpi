@@ -54,12 +54,6 @@ def _charge_payload(praticien_id):
 # ============================================================
 
 
-def test_root():
-    r = client.get("/")
-    assert r.status_code == 200
-    assert r.json()["Hello"] == "World"
-
-
 def test_status():
     r = client.get("/api/v1/status")
     assert r.status_code == 200
