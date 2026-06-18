@@ -16,7 +16,7 @@ const initialState = {
   motif_refus: "",
 };
 
-export default function DevisForm({ token, idPraticien, embedded = false }) {
+export default function DevisForm({ token, idPraticien, embedded = false, onSuccess }) {
   const [form, setForm] = useState(initialState);
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -73,6 +73,7 @@ export default function DevisForm({ token, idPraticien, embedded = false }) {
           message: `Devis #${data.id_devis} créé avec succès pour le patient ${data.id_patient}.`,
         });
         setForm(initialState);
+        onSuccess?.();
       }
     } catch {
       setFeedback({

@@ -32,7 +32,7 @@ function buildEditForm(item) {
   }
 }
 
-export default function ChequeTable({ token, isSecretary, praticiensMap }) {
+export default function ChequeTable({ token, isSecretary, praticiensMap, onMutate }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -117,6 +117,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
         setEditItem(null)
         setFeedback({ type: 'success', message: `Chèque #${result.id_cheque} modifié.` })
         load()
+        onMutate?.()
       }
     } catch {
       setEditError('Erreur réseau.')
@@ -135,6 +136,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap }) {
       if (res.ok || res.status === 204) {
         setFeedback({ type: 'success', message: `Chèque #${item.id_cheque} supprimé.` })
         setData(prev => prev.filter(c => c.id_cheque !== item.id_cheque))
+        onMutate?.()
       } else {
         const d = await res.json()
         setFeedback({ type: 'error', message: d.detail || 'Erreur lors de la suppression.' })

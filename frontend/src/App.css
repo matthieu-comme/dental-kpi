@@ -1551,3 +1551,142 @@ body {
 .btn-full {
   width: 100%;
 }
+
+/* ── Notification Bell ─────────────────────────────────── */
+.notif-bell {
+  position: relative;
+}
+
+.notif-bell__btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: background 0.15s;
+}
+.notif-bell__btn:hover,
+.notif-bell__btn--active {
+  background: rgba(0,0,0,0.06);
+}
+
+.notif-bell__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #e53e3e;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.notif-bell__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.notif-bell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.notif-bell__title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1a202c;
+}
+
+.notif-bell__refresh {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: #718096;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.notif-bell__refresh:hover { background: #f7fafc; }
+
+.notif-bell__empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #718096;
+  font-size: 0.85rem;
+}
+
+.notif-bell__section {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f4f8;
+}
+.notif-bell__section:last-child { border-bottom: none; }
+
+.notif-bell__section-title {
+  padding: 4px 16px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.notif-bell__section-title--devis { color: #c05621; }
+.notif-bell__section-title--cheque { color: #2b6cb0; }
+
+.notif-bell__item {
+  padding: 8px 16px 8px 20px;
+  border-left: 3px solid transparent;
+  transition: background 0.12s;
+}
+.notif-bell__item:hover { background: #f7fafc; }
+.notif-bell__item--devis { border-left-color: #ed8936; }
+.notif-bell__item--cheque { border-left-color: #4299e1; }
+
+.notif-bell__item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.notif-bell__patient {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #2d3748;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-bell__amount {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2d3748;
+  flex-shrink: 0;
+}
+
+.notif-bell__item-sub {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 2px;
+}

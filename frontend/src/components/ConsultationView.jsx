@@ -4,7 +4,7 @@ import ChequeTable from './ChequeTable'
 import JourneeTable from './JourneeTable'
 import LogsTable from './LogsTable'
 
-export default function ConsultationView({ token, isSecretary, praticiens }) {
+export default function ConsultationView({ token, isSecretary, praticiens, onMutate }) {
   const [activeTab, setActiveTab] = useState('devis')
 
   // Map id_praticien → nom pour l'affichage dans les tables
@@ -36,10 +36,10 @@ export default function ConsultationView({ token, isSecretary, praticiens }) {
       </div>
 
       {activeTab === 'devis' && (
-        <DevisTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />
+        <DevisTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} onMutate={onMutate} />
       )}
       {activeTab === 'cheques' && (
-        <ChequeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />
+        <ChequeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} onMutate={onMutate} />
       )}
       {activeTab === 'journees' && (
         <JourneeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />

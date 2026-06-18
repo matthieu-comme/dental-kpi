@@ -20,7 +20,7 @@ const initialState = {
   statut: "EN_ATTENTE",
 };
 
-export default function ChequeForm({ token, idPraticien, embedded = false }) {
+export default function ChequeForm({ token, idPraticien, embedded = false, onSuccess }) {
   const [form, setForm] = useState(initialState);
   const [feedback, setFeedback] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -78,6 +78,7 @@ export default function ChequeForm({ token, idPraticien, embedded = false }) {
           message: `Chèque #${data.id_cheque} créé avec succès pour le patient ${data.id_patient}.`,
         });
         setForm(initialState);
+        onSuccess?.();
       }
     } catch {
       setFeedback({

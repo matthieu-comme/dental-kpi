@@ -45,7 +45,7 @@ function buildEditForm(item) {
   }
 }
 
-export default function DevisTable({ token, isSecretary, praticiensMap }) {
+export default function DevisTable({ token, isSecretary, praticiensMap, onMutate }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -155,6 +155,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
         setEditItem(null)
         setFeedback({ type: 'success', message: `Devis #${result.id_devis} modifié.` })
         load()
+        onMutate?.()
       }
     } catch {
       setEditError('Erreur réseau.')
@@ -173,6 +174,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap }) {
       if (res.ok || res.status === 204) {
         setFeedback({ type: 'success', message: `Devis #${item.id_devis} supprimé.` })
         setData(prev => prev.filter(d => d.id_devis !== item.id_devis))
+        onMutate?.()
       } else {
         const d = await res.json()
         setFeedback({ type: 'error', message: d.detail || 'Erreur lors de la suppression.' })

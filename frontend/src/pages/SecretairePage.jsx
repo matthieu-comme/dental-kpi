@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../context/AuthContext'
 import DevisForm from '../components/DevisForm'
 import ChequeForm from '../components/ChequeForm'
@@ -7,6 +7,7 @@ import PraticienModal from '../components/PraticienModal'
 import ConsultationView from '../components/ConsultationView'
 import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
+import NotificationBell from '../components/NotificationBell'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -17,6 +18,8 @@ export default function SecretairePage() {
   const [activeTab, setActiveTab] = useState('devis')
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [notifKey, setNotifKey] = useState(0)
+  const bumpNotif = useCallback(() => setNotifKey(k => k + 1), [])
   const { isOpen: isPipOpen, isSupported: isPipSupported, open: openPip, close: closePip } = usePip()
 
   function handlePip() {
@@ -58,6 +61,7 @@ export default function SecretairePage() {
       <header className="dashboard-header">
         <h1 className="dashboard-title">Dental KPI — Secrétaire</h1>
         <div className="header-actions">
+          <NotificationBell token={secretaireToken} refreshKey={notifKey} />
           {isPipSupported && (
             <button
               className={`btn-pip${isPipOpen ? ' btn-pip--active' : ''}`}
@@ -133,16 +137,17 @@ export default function SecretairePage() {
           </div>
         )}
         {activeTab === 'devis' && selectedPraticien && (
-          <DevisForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} />
+          <DevisForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
         )}
         {activeTab === 'cheque' && selectedPraticien && (
-          <ChequeForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} />
+          <ChequeForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
         )}
         {activeTab === 'donnees' && (
           <ConsultationView
             token={secretaireToken}
             isSecretary={true}
             praticiens={praticiens}
+            onMutate={bumpNotif}
           />
         )}
         {activeTab === 'cloture' && selectedPraticien && (
