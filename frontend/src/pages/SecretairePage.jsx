@@ -8,6 +8,7 @@ import ConsultationView from '../components/ConsultationView'
 import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
 import NotificationBell from '../components/NotificationBell'
+import CsvImport from '../components/CsvImport'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -128,6 +129,12 @@ export default function SecretairePage() {
         >
           Clôture journée
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'import' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('import')}
+        >
+          Import CSV
+        </button>
       </nav>
 
       <main className={`dashboard-main ${isDonnees ? 'dashboard-main--wide' : ''}`}>
@@ -157,6 +164,16 @@ export default function SecretairePage() {
             praticienNom={selectedPraticien.nom}
             onClose={() => setActiveTab('devis')}
           />
+        )}
+        {activeTab === 'import' && selectedPraticien && (
+          <CsvImport
+            token={secretaireToken}
+            idPraticien={selectedPraticien.id_praticien}
+            onSuccess={bumpNotif}
+          />
+        )}
+        {activeTab === 'import' && !loading && !selectedPraticien && (
+          <div className="alert alert--error">Aucun praticien actif trouvé.</div>
         )}
         {activeTab === 'cloture' && !loading && !selectedPraticien && (
           <div className="alert alert--error">
