@@ -116,10 +116,45 @@ def test_update_config(sec_headers):
     assert r.json()["nom_cabinet"] == "Nouveau Cabinet"
 
 
+def test_update_config_no_auth():
+    r = client.put("/api/v1/systeme/config", json={"nom_cabinet": "Hack"})
+    assert r.status_code == 401
+
+
+def test_update_config_praticien_forbidden(prat_headers):
+    r = client.put("/api/v1/systeme/config", json={"nom_cabinet": "Hack"}, headers=prat_headers)
+    assert r.status_code == 403
+
+
 def test_get_logs(sec_headers):
     r = client.get("/api/v1/systeme/logs", headers=sec_headers)
     assert r.status_code == 200
     assert isinstance(r.json(), list)
+
+
+def test_get_logs_no_auth():
+    r = client.get("/api/v1/systeme/logs")
+    assert r.status_code == 401
+
+
+def test_get_logs_praticien_forbidden(prat_headers):
+    r = client.get("/api/v1/systeme/logs", headers=prat_headers)
+    assert r.status_code == 403
+
+
+def test_create_log(sec_headers):
+    r = client.post("/api/v1/systeme/logs", json={"type_action": "AJOUT_DEVIS", "details": "test"}, headers=sec_headers)
+    assert r.status_code == 201
+
+
+def test_create_log_no_auth():
+    r = client.post("/api/v1/systeme/logs", json={"type_action": "AJOUT_DEVIS", "details": "test"})
+    assert r.status_code == 401
+
+
+def test_create_log_praticien_forbidden(prat_headers):
+    r = client.post("/api/v1/systeme/logs", json={"type_action": "AJOUT_DEVIS", "details": "test"}, headers=prat_headers)
+    assert r.status_code == 403
 
 
 # ============================================================
