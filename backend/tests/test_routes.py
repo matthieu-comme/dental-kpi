@@ -544,3 +544,170 @@ def test_update_performance(prat_headers):
 def test_update_performance_not_found(prat_headers):
     r = client.put("/api/v1/performances/9999", json={"ca_declare": 1000.0}, headers=prat_headers)
     assert r.status_code == 404
+
+
+# ============================================================
+# FILTRES SERVEUR — DEVIS
+# ============================================================
+
+def test_read_deviss_filter_statut(sec_headers, praticien_id):
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    payload_acc = {**_devis_payload(praticien_id), "statut": "ACCEPTE", "date_decision": "2023-01-02"}
+    client.post("/api/v1/devis/", json=payload_acc, headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"statut": "ACCEPTE"}, headers=sec_headers)
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 1
+    assert data[0]["statut"] == "ACCEPTE"
+
+
+def test_read_deviss_filter_patient_ilike(sec_headers, praticien_id):
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    payload_other = {**_devis_payload(praticien_id), "id_patient": "AUTRE999"}
+    client.post("/api/v1/devis/", json=payload_other, headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"id_patient": "p_test"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_patient"] == "P_TEST"
+
+
+def test_read_deviss_filter_date_range(sec_headers, praticien_id):
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    payload_late = {**_devis_payload(praticien_id), "date_emission": "2023-06-15"}
+    client.post("/api/v1/devis/", json=payload_late, headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"date_from": "2023-06-01", "date_to": "2023-12-31"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["date_emission"] == "2023-06-15"
+
+
+def test_read_deviss_filter_montant(sec_headers, praticien_id):
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    payload_cheap = {**_devis_payload(praticien_id), "montant": 100.0}
+    client.post("/api/v1/devis/", json=payload_cheap, headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"montant_min": "200", "montant_max": "1000"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["montant"] == 500.0
+
+
+def test_read_deviss_filter_no_match(sec_headers, praticien_id):
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"id_patient": "INEXISTANT"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+def test_read_deviss_praticien_scope(prat_headers, sec_headers, praticien_id):
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. ScopeD", "pin_clair": "221122"})
+    db = TestingSessionLocal()
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. ScopeD").first()
+    autre_id = autre.id_praticien
+    db.close()
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    client.post("/api/v1/devis/", json=_devis_payload(autre_id), headers=sec_headers)
+    r = client.get("/api/v1/devis/", headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_praticien"] == praticien_id
+
+
+# ============================================================
+# FILTRES SERVEUR — CHÈQUES
+# ============================================================
+
+def test_read_cheques_filter_statut(sec_headers, praticien_id):
+    client.post("/api/v1/cheques/", json=_cheque_payload(praticien_id), headers=sec_headers)
+    payload_dep = {**_cheque_payload(praticien_id), "statut": "DEPOSE"}
+    client.post("/api/v1/cheques/", json=payload_dep, headers=sec_headers)
+    r = client.get("/api/v1/cheques/", params={"statut": "DEPOSE"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["statut"] == "DEPOSE"
+
+
+def test_read_cheques_filter_patient_ilike(sec_headers, praticien_id):
+    client.post("/api/v1/cheques/", json=_cheque_payload(praticien_id), headers=sec_headers)
+    payload_other = {**_cheque_payload(praticien_id), "id_patient": "AUTRE999"}
+    client.post("/api/v1/cheques/", json=payload_other, headers=sec_headers)
+    r = client.get("/api/v1/cheques/", params={"id_patient": "p_test"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_patient"] == "P_TEST"
+
+
+def test_read_cheques_filter_date_range(sec_headers, praticien_id):
+    client.post("/api/v1/cheques/", json=_cheque_payload(praticien_id), headers=sec_headers)
+    payload_late = {**_cheque_payload(praticien_id), "date_reception": "2023-06-15"}
+    client.post("/api/v1/cheques/", json=payload_late, headers=sec_headers)
+    r = client.get("/api/v1/cheques/", params={"date_to": "2023-03-01"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["date_reception"] == "2023-01-01"
+
+
+def test_read_cheques_filter_montant(sec_headers, praticien_id):
+    client.post("/api/v1/cheques/", json=_cheque_payload(praticien_id), headers=sec_headers)
+    payload_cheap = {**_cheque_payload(praticien_id), "montant": 50.0}
+    client.post("/api/v1/cheques/", json=payload_cheap, headers=sec_headers)
+    r = client.get("/api/v1/cheques/", params={"montant_min": "100"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["montant"] == 250.0
+
+
+def test_read_cheques_praticien_scope(prat_headers, sec_headers, praticien_id):
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. ScopeC", "pin_clair": "331133"})
+    db = TestingSessionLocal()
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. ScopeC").first()
+    autre_id = autre.id_praticien
+    db.close()
+    client.post("/api/v1/cheques/", json=_cheque_payload(praticien_id), headers=sec_headers)
+    client.post("/api/v1/cheques/", json=_cheque_payload(autre_id), headers=sec_headers)
+    r = client.get("/api/v1/cheques/", headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_praticien"] == praticien_id
+
+
+# ============================================================
+# FILTRES SERVEUR — JOURNÉES
+# ============================================================
+
+def test_read_journees_filter_date_range(sec_headers, praticien_id):
+    client.post("/api/v1/journees/", json=_journee_payload(praticien_id))
+    payload_late = {**_journee_payload(praticien_id), "date_jour": "2023-06-15"}
+    client.post("/api/v1/journees/", json=payload_late)
+    r = client.get("/api/v1/journees/", params={"date_from": "2023-06-01"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["date_jour"] == "2023-06-15"
+
+
+def test_read_journees_filter_praticien(sec_headers, praticien_id):
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. ScopeJ", "pin_clair": "441144"})
+    db = TestingSessionLocal()
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. ScopeJ").first()
+    autre_id = autre.id_praticien
+    db.close()
+    client.post("/api/v1/journees/", json=_journee_payload(praticien_id))
+    client.post("/api/v1/journees/", json={**_journee_payload(autre_id), "date_jour": "2023-01-02"})
+    r = client.get("/api/v1/journees/", params={"id_praticien": praticien_id}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_praticien"] == praticien_id
+
+
+def test_read_journees_praticien_scope(praticien_id):
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. ScopeJ2", "pin_clair": "551155"})
+    db = TestingSessionLocal()
+    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. ScopeJ2").first()
+    autre_id = autre.id_praticien
+    db.close()
+    client.post("/api/v1/journees/", json=_journee_payload(praticien_id))
+    client.post("/api/v1/journees/", json={**_journee_payload(autre_id), "date_jour": "2023-01-02"})
+    token = create_access_token({"sub": str(praticien_id), "role": "praticien"})
+    r = client.get("/api/v1/journees/", headers={"Authorization": f"Bearer {token}"})
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["id_praticien"] == praticien_id

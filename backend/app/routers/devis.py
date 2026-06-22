@@ -1,3 +1,5 @@
+from typing import Optional
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -32,12 +34,33 @@ def create_devis(
 
 @router.get("/", response_model=list[schemas.DevisResponse])
 def read_deviss(
+    id_patient: Optional[str] = None,
+    id_praticien: Optional[int] = None,
+    statut: Optional[models.StatutDevis] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    montant_min: Optional[float] = None,
+    montant_max: Optional[float] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     query = db.query(models.Devis)
     if current_user["role"] == RoleUser.PRATICIEN:
         query = query.filter(models.Devis.id_praticien == int(current_user["id"]))
+    elif id_praticien is not None:
+        query = query.filter(models.Devis.id_praticien == id_praticien)
+    if id_patient:
+        query = query.filter(models.Devis.id_patient.ilike(f"%{id_patient}%"))
+    if statut:
+        query = query.filter(models.Devis.statut == statut)
+    if date_from:
+        query = query.filter(models.Devis.date_emission >= date_from)
+    if date_to:
+        query = query.filter(models.Devis.date_emission <= date_to)
+    if montant_min is not None:
+        query = query.filter(models.Devis.montant >= montant_min)
+    if montant_max is not None:
+        query = query.filter(models.Devis.montant <= montant_max)
     return query.all()
 
 

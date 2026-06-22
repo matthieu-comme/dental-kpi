@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -58,11 +58,23 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
 
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+
   async function load() {
+    const f = filtersRef.current
     setLoading(true)
     setFetchError('')
+    const params = new URLSearchParams()
+    if (f.patientId) params.set('id_patient', f.patientId)
+    if (f.praticienId) params.set('id_praticien', f.praticienId)
+    if (f.statut) params.set('statut', f.statut)
+    if (f.dateFrom) params.set('date_from', f.dateFrom)
+    if (f.dateTo) params.set('date_to', f.dateTo)
+    if (f.montantMin) params.set('montant_min', f.montantMin)
+    if (f.montantMax) params.set('montant_max', f.montantMax)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/devis/`, {
+      const res = await fetch(`${API_BASE}/api/v1/devis/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) setData(await res.json())
@@ -74,18 +86,10 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     }
   }
 
-  useEffect(() => { load() }, [token])
-
-  const filtered = useMemo(() => data.filter(d => {
-    if (filters.patientId && !d.id_patient.toLowerCase().includes(filters.patientId.toLowerCase())) return false
-    if (filters.praticienId && d.id_praticien !== parseInt(filters.praticienId)) return false
-    if (filters.statut && d.statut !== filters.statut) return false
-    if (filters.dateFrom && d.date_emission < filters.dateFrom) return false
-    if (filters.dateTo && d.date_emission > filters.dateTo) return false
-    if (filters.montantMin && d.montant < parseFloat(filters.montantMin)) return false
-    if (filters.montantMax && d.montant > parseFloat(filters.montantMax)) return false
-    return true
-  }), [data, filters])
+  useEffect(() => {
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [token, filters])
 
   function onFilterChange(e) {
     const { name, value } = e.target
@@ -261,11 +265,11 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {data.length === 0 ? (
                   <tr>
                     <td colSpan={colSpan} className="table-empty">Aucun résultat</td>
                   </tr>
-                ) : filtered.map(d => (
+                ) : data.map(d => (
                   <tr key={d.id_devis}>
                     <td>{d.id_devis}</td>
                     <td>{d.id_patient}</td>
@@ -290,7 +294,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
               </tbody>
             </table>
           </div>
-          <p className="table-count">{filtered.length} résultat(s)</p>
+          <p className="table-count">{data.length} résultat(s)</p>
         </>
       )}
 

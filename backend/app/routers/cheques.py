@@ -1,3 +1,5 @@
+from typing import Optional
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -32,12 +34,33 @@ def create_cheque(
 
 @router.get("/", response_model=list[schemas.ChequeResponse])
 def read_cheques(
+    id_patient: Optional[str] = None,
+    id_praticien: Optional[int] = None,
+    statut: Optional[models.StatutCheque] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    montant_min: Optional[float] = None,
+    montant_max: Optional[float] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     query = db.query(models.Cheque)
     if current_user["role"] == RoleUser.PRATICIEN:
         query = query.filter(models.Cheque.id_praticien == int(current_user["id"]))
+    elif id_praticien is not None:
+        query = query.filter(models.Cheque.id_praticien == id_praticien)
+    if id_patient:
+        query = query.filter(models.Cheque.id_patient.ilike(f"%{id_patient}%"))
+    if statut:
+        query = query.filter(models.Cheque.statut == statut)
+    if date_from:
+        query = query.filter(models.Cheque.date_reception >= date_from)
+    if date_to:
+        query = query.filter(models.Cheque.date_reception <= date_to)
+    if montant_min is not None:
+        query = query.filter(models.Cheque.montant >= montant_min)
+    if montant_max is not None:
+        query = query.filter(models.Cheque.montant <= montant_max)
     return query.all()
 
 

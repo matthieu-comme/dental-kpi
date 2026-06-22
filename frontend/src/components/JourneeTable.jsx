@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -31,11 +31,19 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
 
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+
   async function load() {
+    const f = filtersRef.current
     setLoading(true)
     setFetchError('')
+    const params = new URLSearchParams()
+    if (f.praticienId) params.set('id_praticien', f.praticienId)
+    if (f.dateFrom) params.set('date_from', f.dateFrom)
+    if (f.dateTo) params.set('date_to', f.dateTo)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/journees/`, {
+      const res = await fetch(`${API_BASE}/api/v1/journees/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) setData(await res.json())
@@ -47,14 +55,10 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
     }
   }
 
-  useEffect(() => { load() }, [token])
-
-  const filtered = useMemo(() => data.filter(j => {
-    if (filters.praticienId && j.id_praticien !== parseInt(filters.praticienId)) return false
-    if (filters.dateFrom && j.date_jour < filters.dateFrom) return false
-    if (filters.dateTo && j.date_jour > filters.dateTo) return false
-    return true
-  }), [data, filters])
+  useEffect(() => {
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [token, filters])
 
   function onFilterChange(e) {
     const { name, value } = e.target
@@ -174,11 +178,11 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {data.length === 0 ? (
                   <tr>
                     <td colSpan={colSpan} className="table-empty">Aucun résultat</td>
                   </tr>
-                ) : filtered.map(j => (
+                ) : data.map(j => (
                   <tr key={j.id_journee}>
                     <td>{j.id_journee}</td>
                     <td>{j.date_jour}</td>
@@ -198,7 +202,7 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
               </tbody>
             </table>
           </div>
-          <p className="table-count">{filtered.length} résultat(s)</p>
+          <p className="table-count">{data.length} résultat(s)</p>
         </>
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -44,11 +44,23 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
   const [editLoading, setEditLoading] = useState(false)
   const [editError, setEditError] = useState('')
 
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+
   async function load() {
+    const f = filtersRef.current
     setLoading(true)
     setFetchError('')
+    const params = new URLSearchParams()
+    if (f.patientId) params.set('id_patient', f.patientId)
+    if (f.praticienId) params.set('id_praticien', f.praticienId)
+    if (f.statut) params.set('statut', f.statut)
+    if (f.dateFrom) params.set('date_from', f.dateFrom)
+    if (f.dateTo) params.set('date_to', f.dateTo)
+    if (f.montantMin) params.set('montant_min', f.montantMin)
+    if (f.montantMax) params.set('montant_max', f.montantMax)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/cheques/`, {
+      const res = await fetch(`${API_BASE}/api/v1/cheques/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) setData(await res.json())
@@ -60,18 +72,10 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
     }
   }
 
-  useEffect(() => { load() }, [token])
-
-  const filtered = useMemo(() => data.filter(c => {
-    if (filters.patientId && !c.id_patient.toLowerCase().includes(filters.patientId.toLowerCase())) return false
-    if (filters.praticienId && c.id_praticien !== parseInt(filters.praticienId)) return false
-    if (filters.statut && c.statut !== filters.statut) return false
-    if (filters.dateFrom && c.date_reception < filters.dateFrom) return false
-    if (filters.dateTo && c.date_reception > filters.dateTo) return false
-    if (filters.montantMin && c.montant < parseFloat(filters.montantMin)) return false
-    if (filters.montantMax && c.montant > parseFloat(filters.montantMax)) return false
-    return true
-  }), [data, filters])
+  useEffect(() => {
+    const timer = setTimeout(load, 300)
+    return () => clearTimeout(timer)
+  }, [token, filters])
 
   function onFilterChange(e) {
     const { name, value } = e.target
@@ -221,11 +225,11 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {data.length === 0 ? (
                   <tr>
                     <td colSpan={colSpan} className="table-empty">Aucun résultat</td>
                   </tr>
-                ) : filtered.map(c => (
+                ) : data.map(c => (
                   <tr key={c.id_cheque}>
                     <td>{c.id_cheque}</td>
                     <td>{c.id_patient}</td>
@@ -249,7 +253,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
               </tbody>
             </table>
           </div>
-          <p className="table-count">{filtered.length} résultat(s)</p>
+          <p className="table-count">{data.length} résultat(s)</p>
         </>
       )}
 

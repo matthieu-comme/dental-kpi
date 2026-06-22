@@ -1,3 +1,5 @@
+from typing import Optional
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -32,12 +34,21 @@ def create_journee(journee_in: schemas.JourneeCreate, db: Session = Depends(get_
 
 @router.get("/", response_model=list[schemas.JourneeResponse])
 def read_journees(
+    id_praticien: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     query = db.query(models.Journee)
     if current_user["role"] == RoleUser.PRATICIEN:
         query = query.filter(models.Journee.id_praticien == int(current_user["id"]))
+    elif id_praticien is not None:
+        query = query.filter(models.Journee.id_praticien == id_praticien)
+    if date_from:
+        query = query.filter(models.Journee.date_jour >= date_from)
+    if date_to:
+        query = query.filter(models.Journee.date_jour <= date_to)
     return query.all()
 
 
