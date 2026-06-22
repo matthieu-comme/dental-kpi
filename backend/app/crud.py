@@ -399,6 +399,15 @@ def update_charge(db: Session, id_charge: int, charge_update: schemas.ChargeUpda
     return db_charge
 
 
+def delete_charge(db: Session, id_charge: int):
+    db_charge = db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    if not db_charge:
+        return None
+    db.delete(db_charge)
+    db.commit()
+    return db_charge
+
+
 # PERFORMANCES MENSUELLES
 
 

@@ -480,6 +480,25 @@ def test_update_charge_business_rule(prat_headers, praticien_id):
     assert r.status_code == 400
 
 
+def test_delete_charge(prat_headers, praticien_id):
+    created = client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers).json()
+    r = client.delete(f"/api/v1/charges/{created['id_charge']}", headers=prat_headers)
+    assert r.status_code == 204
+    r2 = client.get(f"/api/v1/charges/{created['id_charge']}", headers=prat_headers)
+    assert r2.status_code == 404
+
+
+def test_delete_charge_not_found(prat_headers):
+    r = client.delete("/api/v1/charges/9999", headers=prat_headers)
+    assert r.status_code == 404
+
+
+def test_delete_charge_secretaire_forbidden(sec_headers, prat_headers, praticien_id):
+    created = client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers).json()
+    r = client.delete(f"/api/v1/charges/{created['id_charge']}", headers=sec_headers)
+    assert r.status_code == 403
+
+
 # ============================================================
 # PERFORMANCES
 # ============================================================

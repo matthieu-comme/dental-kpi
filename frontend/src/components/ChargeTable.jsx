@@ -159,6 +159,25 @@ export default function ChargeTable({ token, idPraticien }) {
     }
   }
 
+  async function handleDelete(item) {
+    if (!window.confirm(`Supprimer la charge "${item.designation}" ?\nCette action est irréversible.`)) return
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/charges/${item.id_charge}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok || res.status === 204) {
+        setFeedback({ type: 'success', message: `Charge "${item.designation}" supprimée.` })
+        setData(prev => prev.filter(c => c.id_charge !== item.id_charge))
+      } else {
+        const d = await res.json()
+        setFeedback({ type: 'error', message: d.detail || 'Erreur lors de la suppression.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Erreur réseau.' })
+    }
+  }
+
   return (
     <div className="data-section">
       <div className="data-section-header">
@@ -286,12 +305,20 @@ export default function ChargeTable({ token, idPraticien }) {
                       <td>{c.date_fin ?? "—"}</td>
                       <td>{c.lissage_mensuel ? "Oui" : "Non"}</td>
                       <td>
-                        <button
-                          className="btn-action btn-action--edit"
-                          onClick={() => openEdit(c)}
-                        >
-                          Modifier
-                        </button>
+                        <div className="action-btns">
+                          <button
+                            className="btn-action btn-action--edit"
+                            onClick={() => openEdit(c)}
+                          >
+                            Modifier
+                          </button>
+                          <button
+                            className="btn-action btn-action--delete"
+                            onClick={() => handleDelete(c)}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

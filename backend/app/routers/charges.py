@@ -80,3 +80,22 @@ def update_charge(
         return crud.update_charge(db, id_charge=id_charge, charge_update=charge_update)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{id_charge}", status_code=204)
+def delete_charge(
+    id_charge: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user["role"] == RoleUser.SECRETAIRE:
+        raise HTTPException(status_code=403, detail="Seul un praticien peut supprimer une charge.")
+
+    db_charge = db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    if db_charge is None:
+        raise HTTPException(status_code=404, detail="Charge introuvable.")
+
+    if db_charge.id_praticien != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+
+    crud.delete_charge(db, id_charge=id_charge)
