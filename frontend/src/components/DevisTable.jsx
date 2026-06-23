@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Pagination from './Pagination'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -51,6 +52,9 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
   const [fetchError, setFetchError] = useState('')
   const [filters, setFilters] = useState(INIT_FILTERS)
   const [feedback, setFeedback] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [total, setTotal] = useState(0)
 
   // État de la modale d'édition
   const [editItem, setEditItem] = useState(null)
@@ -60,6 +64,10 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
 
   const filtersRef = useRef(filters)
   filtersRef.current = filters
+  const pageRef = useRef(page)
+  pageRef.current = page
+  const pageSizeRef = useRef(pageSize)
+  pageSizeRef.current = pageSize
 
   async function load() {
     const f = filtersRef.current
@@ -73,12 +81,16 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     if (f.dateTo) params.set('date_to', f.dateTo)
     if (f.montantMin) params.set('montant_min', f.montantMin)
     if (f.montantMax) params.set('montant_max', f.montantMax)
+    params.set('skip', (pageRef.current - 1) * pageSizeRef.current)
+    params.set('limit', pageSizeRef.current)
     try {
       const res = await fetch(`${API_BASE}/api/v1/devis/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.ok) setData(await res.json())
-      else setFetchError('Impossible de charger les devis.')
+      if (res.ok) {
+        setData(await res.json())
+        setTotal(parseInt(res.headers.get('x-total-count') ?? '0', 10))
+      } else setFetchError('Impossible de charger les devis.')
     } catch {
       setFetchError('Erreur réseau.')
     } finally {
@@ -89,11 +101,12 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
   useEffect(() => {
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [token, filters])
+  }, [token, filters, page, pageSize])
 
   function onFilterChange(e) {
     const { name, value } = e.target
     setFilters(prev => ({ ...prev, [name]: value }))
+    setPage(1)
   }
 
   function openEdit(item) {
@@ -177,7 +190,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
       })
       if (res.ok || res.status === 204) {
         setFeedback({ type: 'success', message: `Devis #${item.id_devis} supprimé.` })
-        setData(prev => prev.filter(d => d.id_devis !== item.id_devis))
+        load()
         onMutate?.()
       } else {
         const d = await res.json()
@@ -239,7 +252,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
           <label>Montant max (€)</label>
           <input type="number" name="montantMax" value={filters.montantMax} onChange={onFilterChange} min="0" step="0.01" placeholder="∞" />
         </div>
-        <button className="btn-ghost-sm" onClick={() => setFilters(INIT_FILTERS)}>
+        <button className="btn-ghost-sm" onClick={() => { setFilters(INIT_FILTERS); setPage(1) }}>
           Réinitialiser
         </button>
       </div>
@@ -294,7 +307,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
               </tbody>
             </table>
           </div>
-          <p className="table-count">{data.length} résultat(s)</p>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </>
       )}
 

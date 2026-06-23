@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
@@ -41,6 +41,9 @@ def read_cheques(
     date_to: Optional[date] = None,
     montant_min: Optional[float] = None,
     montant_max: Optional[float] = None,
+    skip: int = 0,
+    limit: int = Query(default=50, le=500),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -61,7 +64,8 @@ def read_cheques(
         query = query.filter(models.Cheque.montant >= montant_min)
     if montant_max is not None:
         query = query.filter(models.Cheque.montant <= montant_max)
-    return query.all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id_cheque}", response_model=schemas.ChequeResponse)

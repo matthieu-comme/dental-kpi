@@ -711,3 +711,94 @@ def test_read_journees_praticien_scope(praticien_id):
     assert r.status_code == 200
     assert len(r.json()) == 1
     assert r.json()[0]["id_praticien"] == praticien_id
+
+
+# ============================================================
+# PAGINATION — X-Total-Count et skip/limit
+# ============================================================
+
+def test_x_total_count_header(sec_headers, praticien_id):
+    """X-Total-Count est présent et égal au nombre total de résultats."""
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    r = client.get("/api/v1/devis/", headers=sec_headers)
+    assert r.status_code == 200
+    assert r.headers["x-total-count"] == "1"
+
+
+def test_x_total_count_reflects_filters(sec_headers, praticien_id):
+    """X-Total-Count correspond au nombre filtré, pas au total de la table entière."""
+    client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    payload_acc = {**_devis_payload(praticien_id), "statut": "ACCEPTE", "date_decision": "2023-01-02"}
+    client.post("/api/v1/devis/", json=payload_acc, headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"statut": "EN_ATTENTE"}, headers=sec_headers)
+    assert r.status_code == 200
+    assert r.headers["x-total-count"] == "1"
+    assert len(r.json()) == 1
+
+
+def test_skip_limit_pagination(sec_headers, praticien_id):
+    """skip + limit retournent la bonne fenêtre ; X-Total-Count reflète le total, pas la fenêtre."""
+    for _ in range(3):
+        client.post("/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers)
+    r = client.get("/api/v1/devis/", params={"skip": 1, "limit": 1}, headers=sec_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.headers["x-total-count"] == "3"
+
+
+def test_limit_max_exceeded(sec_headers):
+    """limit > 500 est rejeté avec 422."""
+    r = client.get("/api/v1/devis/", params={"limit": 501}, headers=sec_headers)
+    assert r.status_code == 422
+
+
+def test_x_total_count_charges(prat_headers, praticien_id):
+    """X-Total-Count fonctionne aussi sur /charges/."""
+    client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers)
+    r = client.get("/api/v1/charges/", headers=prat_headers)
+    assert r.status_code == 200
+    assert r.headers["x-total-count"] == "1"
+
+
+# ============================================================
+# FILTRES SERVEUR — CHARGES
+# ============================================================
+
+def test_read_charges_filter_designation(prat_headers, praticien_id):
+    client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers)
+    payload_other = {**_charge_payload(praticien_id), "designation": "Assurance pro"}
+    client.post("/api/v1/charges/", json=payload_other, headers=prat_headers)
+    r = client.get("/api/v1/charges/", params={"designation": "loyer"}, headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["designation"] == "Loyer"
+
+
+def test_read_charges_filter_periodicite(prat_headers, praticien_id):
+    client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers)
+    payload_ann = {**_charge_payload(praticien_id), "periodicite": "ANNUEL", "designation": "Taxe foncière"}
+    client.post("/api/v1/charges/", json=payload_ann, headers=prat_headers)
+    r = client.get("/api/v1/charges/", params={"periodicite": "ANNUEL"}, headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["periodicite"] == "ANNUEL"
+
+
+def test_read_charges_filter_date_range(prat_headers, praticien_id):
+    client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers)
+    payload_late = {**_charge_payload(praticien_id), "date_debut": "2023-09-01", "designation": "Nouveau bail"}
+    client.post("/api/v1/charges/", json=payload_late, headers=prat_headers)
+    r = client.get("/api/v1/charges/", params={"date_from": "2023-06-01"}, headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["date_debut"] == "2023-09-01"
+
+
+def test_read_charges_filter_montant(prat_headers, praticien_id):
+    client.post("/api/v1/charges/", json=_charge_payload(praticien_id), headers=prat_headers)
+    payload_cheap = {**_charge_payload(praticien_id), "montant": 50.0, "designation": "Petit abonnement"}
+    client.post("/api/v1/charges/", json=payload_cheap, headers=prat_headers)
+    r = client.get("/api/v1/charges/", params={"montant_max": "500"}, headers=prat_headers)
+    assert r.status_code == 200
+    assert len(r.json()) == 1
+    assert r.json()[0]["montant"] == 50.0

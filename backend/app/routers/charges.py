@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
@@ -30,13 +32,35 @@ def create_charge(
 
 @router.get("/", response_model=list[schemas.ChargeResponse])
 def read_charges(
+    designation: Optional[str] = None,
+    periodicite: Optional[models.PeriodiciteCharge] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    montant_min: Optional[float] = None,
+    montant_max: Optional[float] = None,
+    skip: int = 0,
+    limit: int = Query(default=50, le=500),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
     query = db.query(models.Charge)
     if current_user["role"] == RoleUser.PRATICIEN:
         query = query.filter(models.Charge.id_praticien == int(current_user["id"]))
-    return query.all()
+    if designation:
+        query = query.filter(models.Charge.designation.ilike(f"%{designation}%"))
+    if periodicite:
+        query = query.filter(models.Charge.periodicite == periodicite)
+    if date_from:
+        query = query.filter(models.Charge.date_debut >= date_from)
+    if date_to:
+        query = query.filter(models.Charge.date_debut <= date_to)
+    if montant_min is not None:
+        query = query.filter(models.Charge.montant >= montant_min)
+    if montant_max is not None:
+        query = query.filter(models.Charge.montant <= montant_max)
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id_charge}", response_model=schemas.ChargeResponse)

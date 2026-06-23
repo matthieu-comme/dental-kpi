@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import ChargeForm from "./ChargeForm";
 import ExportCsv from "./ExportCsv";
+import Pagination from "./Pagination";
 
 const API_BASE = "http://localhost:8000";
 
@@ -37,6 +38,9 @@ export default function ChargeTable({ token, idPraticien }) {
   const [fetchError, setFetchError] = useState("");
   const [filters, setFilters] = useState(INIT_FILTERS);
   const [feedback, setFeedback] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [total, setTotal] = useState(0);
   const [showAddModal, setShowAddModal] = useState(false);
 
   const [editItem, setEditItem] = useState(null);
@@ -44,15 +48,34 @@ export default function ChargeTable({ token, idPraticien }) {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState("");
 
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const pageRef = useRef(page);
+  pageRef.current = page;
+  const pageSizeRef = useRef(pageSize);
+  pageSizeRef.current = pageSize;
+
   async function load() {
+    const f = filtersRef.current;
     setLoading(true);
     setFetchError("");
+    const params = new URLSearchParams();
+    if (f.designation) params.set("designation", f.designation);
+    if (f.periodicite) params.set("periodicite", f.periodicite);
+    if (f.dateFrom) params.set("date_from", f.dateFrom);
+    if (f.dateTo) params.set("date_to", f.dateTo);
+    if (f.montantMin) params.set("montant_min", f.montantMin);
+    if (f.montantMax) params.set("montant_max", f.montantMax);
+    params.set("skip", (pageRef.current - 1) * pageSizeRef.current);
+    params.set("limit", pageSizeRef.current);
     try {
-      const res = await fetch(`${API_BASE}/api/v1/charges/`, {
+      const res = await fetch(`${API_BASE}/api/v1/charges/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) setData(await res.json());
-      else setFetchError("Impossible de charger les charges.");
+      if (res.ok) {
+        setData(await res.json());
+        setTotal(parseInt(res.headers.get("x-total-count") ?? "0", 10));
+      } else setFetchError("Impossible de charger les charges.");
     } catch {
       setFetchError("Erreur réseau.");
     } finally {
@@ -61,39 +84,14 @@ export default function ChargeTable({ token, idPraticien }) {
   }
 
   useEffect(() => {
-    load();
-  }, [token]);
-
-  const filtered = useMemo(
-    () =>
-      data.filter((c) => {
-        if (
-          filters.designation &&
-          !c.designation.toLowerCase().includes(filters.designation.toLowerCase())
-        )
-          return false;
-        if (filters.periodicite && c.periodicite !== filters.periodicite)
-          return false;
-        if (filters.dateFrom && c.date_debut < filters.dateFrom) return false;
-        if (filters.dateTo && c.date_debut > filters.dateTo) return false;
-        if (
-          filters.montantMin &&
-          c.montant < parseFloat(filters.montantMin)
-        )
-          return false;
-        if (
-          filters.montantMax &&
-          c.montant > parseFloat(filters.montantMax)
-        )
-          return false;
-        return true;
-      }),
-    [data, filters]
-  );
+    const timer = setTimeout(load, 300);
+    return () => clearTimeout(timer);
+  }, [token, filters, page, pageSize]);
 
   function onFilterChange(e) {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
+    setPage(1);
   }
 
   function openEdit(item) {
@@ -169,7 +167,7 @@ export default function ChargeTable({ token, idPraticien }) {
       })
       if (res.ok || res.status === 204) {
         setFeedback({ type: 'success', message: `Charge "${item.designation}" supprimée.` })
-        setData(prev => prev.filter(c => c.id_charge !== item.id_charge))
+        load()
       } else {
         const d = await res.json()
         setFeedback({ type: 'error', message: d.detail || 'Erreur lors de la suppression.' })
@@ -266,7 +264,7 @@ export default function ChargeTable({ token, idPraticien }) {
         </div>
         <button
           className="btn-ghost-sm"
-          onClick={() => setFilters(INIT_FILTERS)}
+          onClick={() => { setFilters(INIT_FILTERS); setPage(1); }}
         >
           Réinitialiser
         </button>
@@ -292,14 +290,14 @@ export default function ChargeTable({ token, idPraticien }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
+                {data.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="table-empty">
                       Aucun résultat
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((c) => (
+                  data.map((c) => (
                     <tr key={c.id_charge}>
                       <td>{c.id_charge}</td>
                       <td>{c.designation}</td>
@@ -330,7 +328,7 @@ export default function ChargeTable({ token, idPraticien }) {
               </tbody>
             </table>
           </div>
-          <p className="table-count">{filtered.length} résultat(s)</p>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </>
       )}
 

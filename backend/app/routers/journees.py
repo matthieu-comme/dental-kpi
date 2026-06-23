@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
@@ -37,6 +37,9 @@ def read_journees(
     id_praticien: Optional[int] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
+    skip: int = 0,
+    limit: int = Query(default=50, le=500),
+    response: Response = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -49,7 +52,8 @@ def read_journees(
         query = query.filter(models.Journee.date_jour >= date_from)
     if date_to:
         query = query.filter(models.Journee.date_jour <= date_to)
-    return query.all()
+    response.headers["X-Total-Count"] = str(query.count())
+    return query.offset(skip).limit(limit).all()
 
 
 @router.get("/{id_journee}", response_model=schemas.JourneeResponse)

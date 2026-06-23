@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Pagination from './Pagination'
 
 const API_BASE = 'http://localhost:8000'
 
@@ -25,6 +26,9 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
   const [fetchError, setFetchError] = useState('')
   const [filters, setFilters] = useState(INIT_FILTERS)
   const [feedback, setFeedback] = useState(null)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [total, setTotal] = useState(0)
 
   const [editItem, setEditItem] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -33,6 +37,10 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
 
   const filtersRef = useRef(filters)
   filtersRef.current = filters
+  const pageRef = useRef(page)
+  pageRef.current = page
+  const pageSizeRef = useRef(pageSize)
+  pageSizeRef.current = pageSize
 
   async function load() {
     const f = filtersRef.current
@@ -42,12 +50,16 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
     if (f.praticienId) params.set('id_praticien', f.praticienId)
     if (f.dateFrom) params.set('date_from', f.dateFrom)
     if (f.dateTo) params.set('date_to', f.dateTo)
+    params.set('skip', (pageRef.current - 1) * pageSizeRef.current)
+    params.set('limit', pageSizeRef.current)
     try {
       const res = await fetch(`${API_BASE}/api/v1/journees/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-      if (res.ok) setData(await res.json())
-      else setFetchError('Impossible de charger les journées.')
+      if (res.ok) {
+        setData(await res.json())
+        setTotal(parseInt(res.headers.get('x-total-count') ?? '0', 10))
+      } else setFetchError('Impossible de charger les journées.')
     } catch {
       setFetchError('Erreur réseau.')
     } finally {
@@ -58,11 +70,12 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
   useEffect(() => {
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [token, filters])
+  }, [token, filters, page, pageSize])
 
   function onFilterChange(e) {
     const { name, value } = e.target
     setFilters(prev => ({ ...prev, [name]: value }))
+    setPage(1)
   }
 
   function openEdit(item) {
@@ -152,7 +165,7 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
           <label>au</label>
           <input type="date" name="dateTo" value={filters.dateTo} onChange={onFilterChange} />
         </div>
-        <button className="btn-ghost-sm" onClick={() => setFilters(INIT_FILTERS)}>
+        <button className="btn-ghost-sm" onClick={() => { setFilters(INIT_FILTERS); setPage(1) }}>
           Réinitialiser
         </button>
       </div>
@@ -202,7 +215,7 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
               </tbody>
             </table>
           </div>
-          <p className="table-count">{data.length} résultat(s)</p>
+          <Pagination page={page} pageSize={pageSize} total={total} onPageChange={setPage} onPageSizeChange={setPageSize} />
         </>
       )}
 
