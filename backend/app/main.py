@@ -17,6 +17,7 @@ from app.routers import (
     kpis,
     notifications,
     imports,
+    export,
 )
 from app.database import SessionLocal, engine
 from app import models, crud, schemas
@@ -53,6 +54,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 app.include_router(systeme.router)
@@ -66,6 +68,7 @@ app.include_router(performances.router)
 app.include_router(kpis.router)
 app.include_router(notifications.router)
 app.include_router(imports.router)
+app.include_router(export.router)
 
 
 @app.get("/api/v1/status")

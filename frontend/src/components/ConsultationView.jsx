@@ -3,6 +3,7 @@ import DevisTable from './DevisTable'
 import ChequeTable from './ChequeTable'
 import JourneeTable from './JourneeTable'
 import LogsTable from './LogsTable'
+import ExportCsv from './ExportCsv'
 
 export default function ConsultationView({ token, isSecretary, praticiens, onMutate }) {
   const [activeTab, setActiveTab] = useState('devis')
@@ -23,16 +24,19 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
 
   return (
     <div>
-      <div className="sub-tabs">
-        {tabs.map(t => (
-          <button
-            key={t.key}
-            className={`sub-tab ${activeTab === t.key ? 'sub-tab--active' : ''}`}
-            onClick={() => setActiveTab(t.key)}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="sub-tabs-bar">
+        <div className="sub-tabs">
+          {tabs.map(t => (
+            <button
+              key={t.key}
+              className={`sub-tab ${activeTab === t.key ? 'sub-tab--active' : ''}`}
+              onClick={() => setActiveTab(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <ExportCsv token={token} resources={['devis', 'cheques', 'journees']} />
       </div>
 
       {activeTab === 'devis' && (

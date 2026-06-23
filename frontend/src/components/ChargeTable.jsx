@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import ChargeForm from "./ChargeForm";
+import ExportCsv from "./ExportCsv";
 
 const API_BASE = "http://localhost:8000";
 
@@ -182,9 +183,12 @@ export default function ChargeTable({ token, idPraticien }) {
     <div className="data-section">
       <div className="data-section-header">
         <h2>Mes charges</h2>
-        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-          + Ajouter une charge
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <ExportCsv token={token} resources={['charges']} />
+          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+            + Ajouter une charge
+          </button>
+        </div>
       </div>
 
       {feedback && (
