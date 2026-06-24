@@ -28,17 +28,13 @@ from app.config import settings
 models.Base.metadata.create_all(bind=engine)
 
 
-_INSECURE_DEFAULTS = {
-    "SECRET_KEY": "cle-par-defaut",
-    "GLOBAL_PASSWORD": "admin",
-    "GLOBAL_USERNAME": "admin",
-}
-
 def _check_insecure_defaults():
+    from app.config import Settings
+    _defaults = {k: f.default for k, f in Settings.model_fields.items() if f.default is not None}
     issues = [
-        f"{key}={repr(val)}"
-        for key, val in _INSECURE_DEFAULTS.items()
-        if getattr(settings, key) == val
+        f"{key}={repr(getattr(settings, key))}"
+        for key in ("SECRET_KEY", "GLOBAL_PASSWORD", "GLOBAL_USERNAME")
+        if getattr(settings, key) == _defaults.get(key)
     ]
     if issues:
         warnings.warn(

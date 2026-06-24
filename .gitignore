@@ -1,4 +1,17 @@
-# Logs
+venv/
+env/
+.venv/
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.env
+
+*.db
+*.sqlite3
+*.sqlite
+
 logs
 *.log
 npm-debug.log*
@@ -12,12 +25,12 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
+.claude
 *.ntvs*
 *.njsproj
 *.sln
