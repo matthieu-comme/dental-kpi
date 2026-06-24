@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 
 const AuthContext = createContext(null)
 
@@ -79,6 +79,15 @@ export function AuthProvider({ children }) {
     setPraticienToken(null)
     setView('login')
   }
+
+  // Logout déclenché depuis n'importe quel composant via apiFetch (réponse 401)
+  const logoutRef = useRef(logout)
+  logoutRef.current = logout
+  useEffect(() => {
+    const handle = () => logoutRef.current()
+    window.addEventListener('auth:unauthorized', handle)
+    return () => window.removeEventListener('auth:unauthorized', handle)
+  }, [])
 
   useEffect(() => {
     const id = setInterval(() => {

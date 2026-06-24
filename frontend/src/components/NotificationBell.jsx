@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { apiFetch, API_BASE } from '../utils/api'
 
-const API_BASE = 'http://localhost:8000'
 const REFRESH_MS = 60 * 1000
 
 function fmtE(n) {
@@ -14,7 +14,7 @@ export default function NotificationBell({ token, refreshKey }) {
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/notifications`, {
+      const res = await apiFetch(`${API_BASE}/api/v1/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (res.ok) setData(await res.json())
