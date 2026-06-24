@@ -202,7 +202,7 @@ def test_kpi_mensuel_parametres_inclus(prat_headers):
 def test_kpi_mensuel_taux_horaire_reel(prat_headers, praticien_id):
     # CA=20000, présence=480min, perdu=60min → productif=420min=7h → THR=20000/7≈2857
     client.post("/api/v1/performances/", json=_perf(praticien_id), headers=prat_headers)
-    client.post("/api/v1/journees/", json=_journee(praticien_id))
+    client.post("/api/v1/journees/", json=_journee(praticien_id), headers=prat_headers)
     d = client.get(_kpi_url(), headers=prat_headers).json()
     assert d["taux_horaire_reel"] == pytest.approx(20000 / 7, rel=1e-2)
     assert d["ecart_taux_horaire"] == pytest.approx(20000 / 7 - 300.0, rel=1e-2)
@@ -268,7 +268,7 @@ def test_kpi_mensuel_taux_atteinte_ca(prat_headers, praticien_id):
 
 def test_kpi_mensuel_taux_proposition(prat_headers, praticien_id):
     # 5 devis pour 10 patients → 50 %
-    client.post("/api/v1/journees/", json=_journee(praticien_id, nb_patients=10))
+    client.post("/api/v1/journees/", json=_journee(praticien_id, nb_patients=10), headers=prat_headers)
     for i in range(5):
         client.post("/api/v1/devis/", json=_devis(praticien_id, date_emission=f"2023-01-{10+i}"), headers=prat_headers)
     d = client.get(_kpi_url(), headers=prat_headers).json()
@@ -277,7 +277,7 @@ def test_kpi_mensuel_taux_proposition(prat_headers, praticien_id):
 
 def test_kpi_mensuel_taux_desistement_nouveaux(prat_headers, praticien_id):
     # 3 nouveaux vus + 1 non-honoré nouveau → 1/(3+1)=25 %
-    client.post("/api/v1/journees/", json=_journee(praticien_id, nb_nouveaux=3, nb_mq_nv=1))
+    client.post("/api/v1/journees/", json=_journee(praticien_id, nb_nouveaux=3, nb_mq_nv=1), headers=prat_headers)
     d = client.get(_kpi_url(), headers=prat_headers).json()
     assert d["taux_desistement_nouveaux"] == pytest.approx(25.0)
 
@@ -285,7 +285,7 @@ def test_kpi_mensuel_taux_desistement_nouveaux(prat_headers, praticien_id):
 def test_kpi_mensuel_cout_absenteisme(prat_headers, praticien_id):
     # THR=20000/7, perdu=60min=1h → coût=20000/7≈2857
     client.post("/api/v1/performances/", json=_perf(praticien_id), headers=prat_headers)
-    client.post("/api/v1/journees/", json=_journee(praticien_id, presence=480, perdu=60))
+    client.post("/api/v1/journees/", json=_journee(praticien_id, presence=480, perdu=60), headers=prat_headers)
     d = client.get(_kpi_url(), headers=prat_headers).json()
     assert d["cout_absenteisme"] == pytest.approx(20000 / 7, rel=1e-2)
 
@@ -299,9 +299,9 @@ def test_kpi_mensuel_ratio_anticipation(prat_headers, praticien_id):
     assert d["ratio_anticipation"] == pytest.approx(2.5)
 
 
-def test_kpi_mensuel_isolation_entre_praticiens(prat_headers, praticien_id):
+def test_kpi_mensuel_isolation_entre_praticiens(prat_headers, praticien_id, sec_headers):
     # Les données du Dr. Test ne doivent pas apparaître pour un autre praticien
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "222222"})
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "222222"}, headers=sec_headers)
     db = TestingSessionLocal()
     autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
     assert autre is not None
@@ -309,7 +309,7 @@ def test_kpi_mensuel_isolation_entre_praticiens(prat_headers, praticien_id):
     autre_headers = {"Authorization": f"Bearer {create_access_token({'sub': str(autre.id_praticien), 'role': 'praticien'})}"}
 
     client.post("/api/v1/performances/", json=_perf(praticien_id), headers=prat_headers)
-    client.post("/api/v1/journees/", json=_journee(praticien_id))
+    client.post("/api/v1/journees/", json=_journee(praticien_id), headers=prat_headers)
 
     d = client.get(_kpi_url(), headers=autre_headers).json()
     assert d["ca_declare"] is None
@@ -334,7 +334,7 @@ def test_kpi_hebdo_semaine_vide(prat_headers):
 
 def test_kpi_hebdo_taux_occupation(prat_headers, praticien_id):
     # présence=480, perdu=60 → productif=420 → taux=87.5 %
-    client.post("/api/v1/journees/", json=_journee(praticien_id, date_jour=LUNDI.isoformat()))
+    client.post("/api/v1/journees/", json=_journee(praticien_id, date_jour=LUNDI.isoformat()), headers=prat_headers)
     d = client.get(_hebdo_url(), headers=prat_headers).json()
     assert d["temps_productif_minutes"] == 420
     assert d["temps_perdu_minutes"] == 60

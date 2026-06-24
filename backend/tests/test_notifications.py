@@ -140,7 +140,7 @@ def test_notif_devis_tri_par_urgence_decroissante(sec_headers, prat_headers, pra
 
 def test_notif_devis_delai_par_praticien(sec_headers, prat_headers, praticien_id):
     # Créer un second praticien avec un délai différent (30j)
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Long", "pin_clair": "222222"})
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. Long", "pin_clair": "222222"}, headers=sec_headers)
     db = TestingSessionLocal()
     autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Long").first()
     assert autre is not None

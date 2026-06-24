@@ -1,4 +1,5 @@
 import os
+import warnings
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -27,8 +28,29 @@ from app.config import settings
 models.Base.metadata.create_all(bind=engine)
 
 
+_INSECURE_DEFAULTS = {
+    "SECRET_KEY": "cle-par-defaut",
+    "GLOBAL_PASSWORD": "admin",
+    "GLOBAL_USERNAME": "admin",
+}
+
+def _check_insecure_defaults():
+    issues = [
+        f"{key}={repr(val)}"
+        for key, val in _INSECURE_DEFAULTS.items()
+        if getattr(settings, key) == val
+    ]
+    if issues:
+        warnings.warn(
+            f"\n⚠️  SÉCURITÉ : variables d'environnement non configurées — {', '.join(issues)}\n"
+            "   Modifiez backend/.env avant tout déploiement.",
+            stacklevel=1,
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _check_insecure_defaults()
     models.Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()

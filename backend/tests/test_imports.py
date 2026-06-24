@@ -63,7 +63,7 @@ def test_import_cheques_sans_token_retourne_401(praticien_id):
 
 
 def test_import_devis_praticien_autre_retourne_403(praticien_id, sec_headers):
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "222222"})
+    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "222222"}, headers=sec_headers)
     db = TestingSessionLocal()
     autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
     assert autre is not None

@@ -12,7 +12,11 @@ router = APIRouter(prefix="/api/v1/journees", tags=["Journées"])
 
 
 @router.post("/", response_model=schemas.JourneeResponse, status_code=201)
-def create_journee(journee_in: schemas.JourneeCreate, db: Session = Depends(get_db)):
+def create_journee(
+    journee_in: schemas.JourneeCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     try:
         return crud.create_journee(db=db, journee=journee_in)
     except IntegrityError as e:

@@ -15,7 +15,10 @@ router = APIRouter(prefix="/api/v1/praticiens", tags=["Praticiens"])
 def create_praticien(
     praticien: schemas.PraticienCreate,
     db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
+    if current_user["role"] != "secretaire":
+        raise HTTPException(status_code=403, detail="Réservé à la secrétaire.")
     return crud.create_praticien(db, praticien)
 
 
