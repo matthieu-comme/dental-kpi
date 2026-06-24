@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 
 export default function PraticienModal({ onClose, onSuccess }) {
   const [praticiens, setPraticiens] = useState([])

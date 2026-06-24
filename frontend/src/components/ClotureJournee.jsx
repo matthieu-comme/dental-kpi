@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 const TODAY = new Date().toISOString().split('T')[0]
 
 const DEVIS_LABELS = { EN_ATTENTE: 'En attente', ACCEPTE: 'Accepté', REFUSE: 'Refusé' }

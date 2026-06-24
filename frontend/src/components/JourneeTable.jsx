@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Pagination from './Pagination'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 
 const INIT_FILTERS = {
   praticienId: '',

@@ -3,7 +3,7 @@ import ChargeForm from "./ChargeForm";
 import ExportCsv from "./ExportCsv";
 import Pagination from "./Pagination";
 
-const API_BASE = "http://localhost:8000";
+import { API_BASE } from '../utils/api'
 
 const PERIO_LABELS = {
   PONCTUEL: "Ponctuel",

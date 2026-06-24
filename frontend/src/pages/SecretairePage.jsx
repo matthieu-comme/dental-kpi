@@ -10,7 +10,7 @@ import { usePip } from '../hooks/usePip'
 import NotificationBell from '../components/NotificationBell'
 import CsvImport from '../components/CsvImport'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 
 export default function SecretairePage() {
   const { secretaireToken, switchToPraticien, logout } = useAuth()

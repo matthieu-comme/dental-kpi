@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 
 const TYPE_ACTION_LABELS = {
   SMS_ENVOYE: 'SMS envoyé',

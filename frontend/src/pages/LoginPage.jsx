@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 
-const API_BASE = 'http://localhost:8000'
+import { API_BASE } from '../utils/api'
 
 async function fetchToken(username, password) {
   const body = new URLSearchParams({ username, password })
