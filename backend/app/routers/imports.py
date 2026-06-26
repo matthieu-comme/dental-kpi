@@ -12,6 +12,34 @@ router = APIRouter(prefix="/api/v1/imports", tags=["Imports CSV"])
 DEVIS_COLONNES = "id_patient,montant,temps_previsionnel_minutes,date_emission,statut,date_decision,motif_refus"
 CHEQUE_COLONNES = "id_patient,montant,date_reception,date_depot_prevue,statut"
 
+# Mapping labels français (export) → noms techniques (import)
+_DEVIS_LABELS: dict[str, str] = {
+    "N° devis": "id_devis",
+    "N° praticien": "id_praticien",
+    "N° patient": "id_patient",
+    "Montant (€)": "montant",
+    "Temps prévu (min)": "temps_previsionnel_minutes",
+    "Date émission": "date_emission",
+    "Date décision": "date_decision",
+    "Statut": "statut",
+    "Motif refus": "motif_refus",
+}
+
+_CHEQUE_LABELS: dict[str, str] = {
+    "N° chèque": "id_cheque",
+    "N° praticien": "id_praticien",
+    "N° patient": "id_patient",
+    "Montant (€)": "montant",
+    "Date réception": "date_reception",
+    "Date dépôt prévue": "date_depot_prevue",
+    "Statut": "statut",
+}
+
+
+def _normalize(rows: list[dict], label_map: dict[str, str]) -> list[dict]:
+    """Renomme les clés françaises en noms techniques ; laisse les noms déjà techniques intacts."""
+    return [{label_map.get(k, k): v for k, v in row.items()} for row in rows]
+
 
 def _opt(row: dict, key: str) -> str | None:
     v = row.get(key, "").strip()
@@ -49,7 +77,7 @@ async def import_devis(
 ):
     _check_auth(current_user, id_praticien)
 
-    rows = _parse_csv(await file.read())
+    rows = _normalize(_parse_csv(await file.read()), _DEVIS_LABELS)
     valides: list[schemas.DevisCreate] = []
     erreurs: list[dict] = []
 
@@ -97,7 +125,7 @@ async def import_cheques(
 ):
     _check_auth(current_user, id_praticien)
 
-    rows = _parse_csv(await file.read())
+    rows = _normalize(_parse_csv(await file.read()), _CHEQUE_LABELS)
     valides: list[schemas.ChequeCreate] = []
     erreurs: list[dict] = []
 

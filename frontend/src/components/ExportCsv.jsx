@@ -58,12 +58,13 @@ const RESOURCES = {
   },
 }
 
-export default function ExportCsv({ token, resources: allowedKeys }) {
+export default function ExportCsv({ token, resources: allowedKeys, standalone = false }) {
   const [open, setOpen] = useState(false)
   const [resource, setResource] = useState(null)
   const [selectedCols, setSelectedCols] = useState([])
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const entries = (allowedKeys ?? Object.keys(RESOURCES))
     .filter(k => RESOURCES[k])
@@ -73,6 +74,7 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
     setResource(key)
     setSelectedCols(RESOURCES[key].columns.map(c => c.key))
     setError('')
+    setSuccess('')
   }
 
   function toggleCol(key) {
@@ -86,6 +88,18 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
     setSelectedCols(prev => (prev.length === all.length ? [] : all))
   }
 
+  function reset() {
+    setResource(null)
+    setSelectedCols([])
+    setError('')
+    setSuccess('')
+  }
+
+  function handleClose() {
+    setOpen(false)
+    reset()
+  }
+
   async function handleExport() {
     if (!resource || selectedCols.length === 0) {
       setError('Sélectionnez au moins une colonne.')
@@ -93,6 +107,7 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
     }
     setExporting(true)
     setError('')
+    setSuccess('')
     const params = new URLSearchParams({ resource, columns: selectedCols.join(',') })
     try {
       const res = await fetch(`${API_BASE}/api/v1/export/csv?${params}`, {
@@ -112,7 +127,11 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      handleClose()
+      if (standalone) {
+        setSuccess(`Fichier ${resource}_export.csv téléchargé.`)
+      } else {
+        handleClose()
+      }
     } catch {
       setError('Erreur réseau.')
     } finally {
@@ -120,15 +139,77 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
     }
   }
 
-  function handleClose() {
-    setOpen(false)
-    setResource(null)
-    setSelectedCols([])
-    setError('')
-  }
-
   const allCols = resource ? RESOURCES[resource].columns.map(c => c.key) : []
   const allSelected = selectedCols.length === allCols.length && allCols.length > 0
+
+  const formBody = (
+    <>
+      {error && <div className="alert alert--error">{error}</div>}
+      {success && <div className="alert alert--success">{success}</div>}
+
+      <div className="form-group">
+        <label>Type de données</label>
+        <div className="export-type-tabs">
+          {entries.map(([key, cfg]) => (
+            <button
+              key={key}
+              className={`export-type-tab${resource === key ? ' export-type-tab--active' : ''}`}
+              onClick={() => pickResource(key)}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {resource && (
+        <div className="form-group">
+          <div className="export-cols-header">
+            <label>Colonnes à exporter ({selectedCols.length}/{allCols.length})</label>
+            <button className="btn-ghost-sm" type="button" onClick={toggleAll}>
+              {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
+            </button>
+          </div>
+          <div className="export-cols-grid">
+            {RESOURCES[resource].columns.map(col => (
+              <label key={col.key} className="export-col-item">
+                <input
+                  type="checkbox"
+                  checked={selectedCols.includes(col.key)}
+                  onChange={() => toggleCol(col.key)}
+                />
+                <span>{col.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="modal-actions">
+        {!standalone && (
+          <button className="btn-ghost" onClick={handleClose}>Annuler</button>
+        )}
+        <button
+          className="btn-primary"
+          onClick={handleExport}
+          disabled={!resource || selectedCols.length === 0 || exporting}
+        >
+          {exporting ? 'Export en cours…' : 'Télécharger'}
+        </button>
+      </div>
+    </>
+  )
+
+  if (standalone) {
+    return (
+      <div className="data-section">
+        <div className="data-section-header">
+          <h2>Exporter en CSV</h2>
+        </div>
+        {formBody}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -146,57 +227,7 @@ export default function ExportCsv({ token, resources: allowedKeys }) {
               <h3>Exporter en CSV</h3>
               <button className="modal-close" onClick={handleClose}>×</button>
             </div>
-
-            {error && <div className="alert alert--error">{error}</div>}
-
-            <div className="form-group">
-              <label>Type de données</label>
-              <div className="export-type-tabs">
-                {entries.map(([key, cfg]) => (
-                  <button
-                    key={key}
-                    className={`export-type-tab${resource === key ? ' export-type-tab--active' : ''}`}
-                    onClick={() => pickResource(key)}
-                  >
-                    {cfg.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {resource && (
-              <div className="form-group">
-                <div className="export-cols-header">
-                  <label>Colonnes à exporter ({selectedCols.length}/{allCols.length})</label>
-                  <button className="btn-ghost-sm" type="button" onClick={toggleAll}>
-                    {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
-                  </button>
-                </div>
-                <div className="export-cols-grid">
-                  {RESOURCES[resource].columns.map(col => (
-                    <label key={col.key} className="export-col-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedCols.includes(col.key)}
-                        onChange={() => toggleCol(col.key)}
-                      />
-                      <span>{col.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="modal-actions">
-              <button className="btn-ghost" onClick={handleClose}>Annuler</button>
-              <button
-                className="btn-primary"
-                onClick={handleExport}
-                disabled={!resource || selectedCols.length === 0 || exporting}
-              >
-                {exporting ? 'Export en cours…' : 'Télécharger'}
-              </button>
-            </div>
+            {formBody}
           </div>
         </div>
       )}

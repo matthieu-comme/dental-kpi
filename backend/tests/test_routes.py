@@ -1106,3 +1106,76 @@ def test_read_charges_filter_montant(prat_headers, praticien_id):
     assert r.status_code == 200
     assert len(r.json()) == 1
     assert r.json()[0]["montant"] == 50.0
+
+
+# ============================================================
+# IMPORT CSV — formats noms techniques ET labels français
+# ============================================================
+
+def _csv(header: str, *rows: str) -> bytes:
+    return ("\n".join([header, *rows])).encode("utf-8")
+
+
+def test_import_devis_noms_techniques(sec_headers, praticien_id):
+    """Format template (noms de colonnes techniques) — format de référence."""
+    csv_bytes = _csv(
+        "id_patient,montant,temps_previsionnel_minutes,date_emission,statut,date_decision,motif_refus",
+        "P001,1500.00,60,2024-01-15,EN_ATTENTE,,",
+    )
+    r = client.post(
+        f"/api/v1/imports/devis?id_praticien={praticien_id}",
+        headers=sec_headers,
+        files={"file": ("devis.csv", csv_bytes, "text/csv")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["importes"] == 1
+    assert data["erreurs"] == []
+
+
+def test_import_devis_labels_francais(sec_headers, praticien_id):
+    """Format export (labels français) — doit être réimportable sans erreur."""
+    csv_bytes = _csv(
+        "N° devis,N° praticien,N° patient,Montant (€),Temps prévu (min),Date émission,Date décision,Statut,Motif refus",
+        f"1,{praticien_id},P001,1500.0,60,2024-01-15,,EN_ATTENTE,",
+    )
+    r = client.post(
+        f"/api/v1/imports/devis?id_praticien={praticien_id}",
+        headers=sec_headers,
+        files={"file": ("devis_export.csv", csv_bytes, "text/csv")},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["importes"] == 1
+    assert data["erreurs"] == []
+
+
+def test_import_cheques_noms_techniques(sec_headers, praticien_id):
+    csv_bytes = _csv(
+        "id_patient,montant,date_reception,date_depot_prevue,statut",
+        "P001,250.00,2024-01-15,,EN_ATTENTE",
+    )
+    r = client.post(
+        f"/api/v1/imports/cheques?id_praticien={praticien_id}",
+        headers=sec_headers,
+        files={"file": ("cheques.csv", csv_bytes, "text/csv")},
+    )
+    assert r.status_code == 200
+    assert r.json()["importes"] == 1
+    assert r.json()["erreurs"] == []
+
+
+def test_import_cheques_labels_francais(sec_headers, praticien_id):
+    """Format export labels français — doit être réimportable."""
+    csv_bytes = _csv(
+        "N° chèque,N° praticien,N° patient,Montant (€),Date réception,Date dépôt prévue,Statut",
+        f"1,{praticien_id},P001,250.0,2024-01-15,,EN_ATTENTE",
+    )
+    r = client.post(
+        f"/api/v1/imports/cheques?id_praticien={praticien_id}",
+        headers=sec_headers,
+        files={"file": ("cheques_export.csv", csv_bytes, "text/csv")},
+    )
+    assert r.status_code == 200
+    assert r.json()["importes"] == 1
+    assert r.json()["erreurs"] == []

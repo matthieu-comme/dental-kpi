@@ -9,6 +9,7 @@ import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
 import NotificationBell from '../components/NotificationBell'
 import CsvImport from '../components/CsvImport'
+import ExportCsv from '../components/ExportCsv'
 
 import { API_BASE } from '../utils/api'
 
@@ -56,6 +57,7 @@ export default function SecretairePage() {
 
   const isDonnees = activeTab === 'donnees'
   const isCloture = activeTab === 'cloture'
+  const isExport = activeTab === 'export'
 
   return (
     <div className="dashboard">
@@ -80,8 +82,8 @@ export default function SecretairePage() {
         </div>
       </header>
 
-      {/* Barre de sélection praticien — masquée sur l'onglet Données */}
-      {!isDonnees && (
+      {/* Barre de sélection praticien — masquée sur les onglets sans contexte praticien */}
+      {!isDonnees && !isExport && (
         <div className="praticien-bar">
           <span className="praticien-bar__label">Praticien :</span>
           {loading ? (
@@ -135,10 +137,16 @@ export default function SecretairePage() {
         >
           Import CSV
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'export' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('export')}
+        >
+          Export CSV
+        </button>
       </nav>
 
-      <main className={`dashboard-main ${isDonnees ? 'dashboard-main--wide' : ''}`}>
-        {!isDonnees && !isCloture && !loading && !selectedPraticien && (
+      <main className={`dashboard-main ${isDonnees || isExport ? 'dashboard-main--wide' : ''}`}>
+        {!isDonnees && !isCloture && !isExport && !loading && !selectedPraticien && (
           <div className="alert alert--error">
             Aucun praticien actif trouvé. Veuillez en créer un via l'API.
           </div>
@@ -174,6 +182,13 @@ export default function SecretairePage() {
         )}
         {activeTab === 'import' && !loading && !selectedPraticien && (
           <div className="alert alert--error">Aucun praticien actif trouvé.</div>
+        )}
+        {activeTab === 'export' && (
+          <ExportCsv
+            token={secretaireToken}
+            resources={['devis', 'cheques', 'journees']}
+            standalone
+          />
         )}
         {activeTab === 'cloture' && !loading && !selectedPraticien && (
           <div className="alert alert--error">
