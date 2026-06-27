@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 
 import { API_BASE } from '../utils/api'
+import { formatApiErrors } from '../utils/apiErrors'
 
 const TYPES = {
   devis: {
@@ -65,6 +66,26 @@ export default function CsvImport({ token, idPraticien, onSuccess }) {
     if (fileRef.current) fileRef.current.value = ''
   }
 
+  function downloadErreurs() {
+    const cols = t.colonnes.split(',')
+    const rows = result.erreurs
+      .filter(e => e.row)
+      .map(e => cols.map(c => {
+        const val = (e.row[c] ?? '').toString()
+        return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val
+      }).join(','))
+    const csv = [t.colonnes, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `erreurs_${type}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
   const t = TYPES[type]
 
   return (
@@ -114,16 +135,30 @@ export default function CsvImport({ token, idPraticien, onSuccess }) {
 
         {result && (
           <div className="csv-import__result">
-            <div className={`csv-import__summary ${result.importes > 0 ? 'csv-import__summary--ok' : 'csv-import__summary--warn'}`}>
-              {result.importes} / {result.total} ligne{result.total > 1 ? 's' : ''} importée{result.importes > 1 ? 's' : ''}
-              {result.erreurs.length > 0 && ` · ${result.erreurs.length} erreur${result.erreurs.length > 1 ? 's' : ''}`}
+            <div className="csv-import__summary-row">
+              <div className={`csv-import__summary ${result.importes > 0 ? 'csv-import__summary--ok' : 'csv-import__summary--warn'}`}>
+                {result.importes} / {result.total} ligne{result.total > 1 ? 's' : ''} importée{result.importes > 1 ? 's' : ''}
+                {result.erreurs.length > 0 && ` · ${result.erreurs.length} erreur${result.erreurs.length > 1 ? 's' : ''}`}
+              </div>
+              {result.erreurs.length > 0 && result.erreurs.some(e => e.row) && (
+                <button className="btn-ghost-sm" onClick={downloadErreurs}>
+                  ↓ Télécharger les lignes en erreur
+                </button>
+              )}
             </div>
             {result.erreurs.length > 0 && (
               <ul className="csv-import__errors">
                 {result.erreurs.map((e, i) => (
                   <li key={i} className="csv-import__error">
-                    <span className="csv-import__error-line">Ligne {e.ligne}</span>
-                    <span className="csv-import__error-msg">{e.message}</span>
+                    <div className="csv-import__error-header">
+                      <span className="csv-import__error-line">Ligne {e.ligne}</span>
+                      <span className="csv-import__error-msg">
+                        {e.errors ? formatApiErrors(e.errors) : e.message}
+                      </span>
+                    </div>
+                    {e.contenu && (
+                      <div className="csv-import__error-contenu">{e.contenu}</div>
+                    )}
                   </li>
                 ))}
               </ul>

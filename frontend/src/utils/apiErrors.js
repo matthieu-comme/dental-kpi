@@ -96,7 +96,7 @@ function one(err) {
     case 'date_from_datetime_parsing':
     case 'date_parsing':
     case 'date_type':
-      return `${l} doit être une date valide (AAAA-MM-JJ).`
+      return `${l} doit être une date valide (ex : 25/01/2026 ou 2026-01-25).`
     case 'enum':
       return `${l} : valeur non reconnue.`
     case 'value_error': {

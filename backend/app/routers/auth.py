@@ -30,7 +30,7 @@ def login_for_access_token(
     if form_data.username == settings.GLOBAL_USERNAME:
         config = db.query(models.ConfigSysteme).first()
         if not config or not check_pin(form_data.password, config.password_global_hash):
-            raise HTTPException(status_code=401, detail="Mot de passe global incorrect")
+            raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
         user_data = {"sub": "secretaire", "role": "secretaire"}
 
