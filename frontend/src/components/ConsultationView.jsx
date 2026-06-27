@@ -1,19 +1,29 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import DevisTable from './DevisTable'
 import ChequeTable from './ChequeTable'
 import JourneeTable from './JourneeTable'
 import LogsTable from './LogsTable'
 import ExportCsv from './ExportCsv'
 
-export default function ConsultationView({ token, isSecretary, praticiens, onMutate }) {
+export default function ConsultationView({ token, isSecretary, praticiens, onMutate, focus }) {
   const [activeTab, setActiveTab] = useState('devis')
+  const [focusPatientId, setFocusPatientId] = useState(null)
+  const [focusType, setFocusType] = useState(null)
 
-  // Map id_praticien → nom pour l'affichage dans les tables
   const praticiensMap = useMemo(() => {
     const map = {}
     praticiens.forEach(p => { map[p.id_praticien] = p.nom })
     return map
   }, [praticiens])
+
+  // Réagit à chaque nouvelle navigation depuis une notification
+  useEffect(() => {
+    if (!focus) return
+    const subTab = focus.type === 'devis' ? 'devis' : 'cheques'
+    setActiveTab(subTab)
+    setFocusPatientId(focus.idPatient)
+    setFocusType(focus.type)
+  }, [focus?.key])
 
   const tabs = [
     { key: 'devis', label: 'Devis' },
@@ -40,10 +50,22 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
       </div>
 
       {activeTab === 'devis' && (
-        <DevisTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} onMutate={onMutate} />
+        <DevisTable
+          token={token}
+          isSecretary={isSecretary}
+          praticiensMap={praticiensMap}
+          onMutate={onMutate}
+          focusPatientId={focusType === 'devis' ? focusPatientId : null}
+        />
       )}
       {activeTab === 'cheques' && (
-        <ChequeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} onMutate={onMutate} />
+        <ChequeTable
+          token={token}
+          isSecretary={isSecretary}
+          praticiensMap={praticiensMap}
+          onMutate={onMutate}
+          focusPatientId={focusType === 'cheques' ? focusPatientId : null}
+        />
       )}
       {activeTab === 'journees' && (
         <JourneeTable token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />

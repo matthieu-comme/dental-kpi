@@ -21,6 +21,12 @@ export default function SecretairePage() {
   const [loading, setLoading] = useState(true)
   const [notifKey, setNotifKey] = useState(0)
   const bumpNotif = useCallback(() => setNotifKey(k => k + 1), [])
+  const [donneesFocus, setDonneesFocus] = useState(null)
+
+  function handleNotifNavigate(type, idPatient) {
+    setActiveTab('donnees')
+    setDonneesFocus({ type, idPatient, key: Date.now() })
+  }
   const { isOpen: isPipOpen, isSupported: isPipSupported, open: openPip, close: closePip } = usePip()
 
   function handlePip() {
@@ -63,7 +69,7 @@ export default function SecretairePage() {
       <header className="dashboard-header">
         <h1 className="dashboard-title">Dental KPI — Secrétaire</h1>
         <div className="header-actions">
-          <NotificationBell token={secretaireToken} refreshKey={notifKey} />
+          <NotificationBell token={secretaireToken} refreshKey={notifKey} onNavigate={handleNotifNavigate} />
           {isPipSupported && (
             <button
               className={`btn-pip${isPipOpen ? ' btn-pip--active' : ''}`}
@@ -156,6 +162,7 @@ export default function SecretairePage() {
             isSecretary={true}
             praticiens={praticiens}
             onMutate={bumpNotif}
+            focus={donneesFocus}
           />
         )}
         {activeTab === 'cloture' && selectedPraticien && (

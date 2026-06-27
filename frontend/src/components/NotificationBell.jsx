@@ -7,7 +7,7 @@ function fmtE(n) {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n)
 }
 
-export default function NotificationBell({ token, refreshKey }) {
+export default function NotificationBell({ token, refreshKey, onNavigate }) {
   const [data, setData] = useState(null)
   const [open, setOpen] = useState(false)
   const ref = useRef()
@@ -67,7 +67,11 @@ export default function NotificationBell({ token, refreshKey }) {
                     Devis à relancer ({data.devis_relance.length})
                   </div>
                   {data.devis_relance.map(d => (
-                    <div key={d.id_devis} className="notif-bell__item notif-bell__item--devis">
+                    <button
+                      key={d.id_devis}
+                      className="notif-bell__item notif-bell__item--devis notif-bell__item--clickable"
+                      onClick={() => { onNavigate?.('devis', d.id_patient); setOpen(false) }}
+                    >
                       <div className="notif-bell__item-main">
                         <span className="notif-bell__patient">{d.id_patient}</span>
                         <span className="notif-bell__amount">{fmtE(d.montant)}</span>
@@ -75,7 +79,7 @@ export default function NotificationBell({ token, refreshKey }) {
                       <div className="notif-bell__item-sub">
                         {d.praticien} · {d.jours_attente}j d'attente
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </section>
               )}
@@ -86,7 +90,11 @@ export default function NotificationBell({ token, refreshKey }) {
                     Chèques à déposer ({data.cheques_depot.length})
                   </div>
                   {data.cheques_depot.map(c => (
-                    <div key={c.id_cheque} className="notif-bell__item notif-bell__item--cheque">
+                    <button
+                      key={c.id_cheque}
+                      className="notif-bell__item notif-bell__item--cheque notif-bell__item--clickable"
+                      onClick={() => { onNavigate?.('cheques', c.id_patient); setOpen(false) }}
+                    >
                       <div className="notif-bell__item-main">
                         <span className="notif-bell__patient">{c.id_patient}</span>
                         <span className="notif-bell__amount">{fmtE(c.montant)}</span>
@@ -97,7 +105,7 @@ export default function NotificationBell({ token, refreshKey }) {
                           ? "à déposer aujourd'hui"
                           : `${c.jours_retard}j de retard`}
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </section>
               )}

@@ -34,7 +34,7 @@ function buildEditForm(item) {
   }
 }
 
-export default function ChequeTable({ token, isSecretary, praticiensMap, onMutate }) {
+export default function ChequeTable({ token, isSecretary, praticiensMap, onMutate, focusPatientId }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -55,6 +55,12 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
   pageRef.current = page
   const pageSizeRef = useRef(pageSize)
   pageSizeRef.current = pageSize
+
+  useEffect(() => {
+    if (!focusPatientId) return
+    setFilters(prev => ({ ...prev, patientId: focusPatientId }))
+    setPage(1)
+  }, [focusPatientId])
 
   async function load() {
     const f = filtersRef.current

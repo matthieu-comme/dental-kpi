@@ -1660,10 +1660,21 @@ body {
   padding: 8px 16px 8px 20px;
   border-left: 3px solid transparent;
   transition: background 0.12s;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 .notif-bell__item:hover { background: #f7fafc; }
 .notif-bell__item--devis { border-left-color: #ed8936; }
 .notif-bell__item--cheque { border-left-color: #4299e1; }
+.notif-bell__item--clickable { cursor: pointer; }
+.notif-bell__item--clickable:hover { background: #edf2f7; }
 
 .notif-bell__item-main {
   display: flex;
