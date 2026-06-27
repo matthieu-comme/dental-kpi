@@ -1,5 +1,6 @@
 import csv
 import io
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
@@ -16,7 +17,7 @@ RESOURCE_CONFIG: dict = {
         "praticien_col": "id_praticien",
         "columns": {
             "id_devis": "N° devis",
-            "id_praticien": "N° praticien",
+            "id_praticien": "Praticien",
             "id_patient": "N° patient",
             "montant": "Montant (€)",
             "temps_previsionnel_minutes": "Temps prévu (min)",
@@ -31,7 +32,7 @@ RESOURCE_CONFIG: dict = {
         "praticien_col": "id_praticien",
         "columns": {
             "id_cheque": "N° chèque",
-            "id_praticien": "N° praticien",
+            "id_praticien": "Praticien",
             "id_patient": "N° patient",
             "montant": "Montant (€)",
             "date_reception": "Date réception",
@@ -44,7 +45,7 @@ RESOURCE_CONFIG: dict = {
         "praticien_col": "id_praticien",
         "columns": {
             "id_journee": "N° journée",
-            "id_praticien": "N° praticien",
+            "id_praticien": "Praticien",
             "date_jour": "Date",
             "nb_patients_vus": "Patients vus",
             "nb_nouveaux_patients": "Nouveaux patients",
@@ -59,7 +60,7 @@ RESOURCE_CONFIG: dict = {
         "praticien_col": "id_praticien",
         "columns": {
             "id_charge": "N° charge",
-            "id_praticien": "N° praticien",
+            "id_praticien": "Praticien",
             "designation": "Désignation",
             "montant": "Montant (€)",
             "periodicite": "Périodicité",
@@ -85,6 +86,7 @@ def _serialize(val) -> str:
 def export_csv(
     resource: str,
     columns: str,
+    id_praticien: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
@@ -110,21 +112,41 @@ def export_csv(
         query = query.filter(
             getattr(model_cls, config["praticien_col"]) == int(current_user["id"])
         )
+    elif id_praticien is not None:
+        query = query.filter(
+            getattr(model_cls, config["praticien_col"]) == id_praticien
+        )
 
     rows = query.all()
+
+    # Pré-charger les noms de praticiens si la colonne est demandée
+    praticien_names: dict[int, str] = {}
+    if "id_praticien" in col_list:
+        praticien_names = {
+            p.id_praticien: p.nom
+            for p in db.query(models.Praticien).all()
+        }
+
+    def _cell(col: str, row) -> str:
+        val = getattr(row, col, None)
+        if col == "id_praticien" and val is not None:
+            return praticien_names.get(val, str(val))
+        return _serialize(val)
 
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow([allowed[c] for c in col_list])
     for row in rows:
-        writer.writerow([_serialize(getattr(row, col, None)) for col in col_list])
+        writer.writerow([_cell(c, row) for c in col_list])
 
     # utf-8-sig adds BOM so Excel opens the file correctly
     content = buf.getvalue().encode("utf-8-sig")
+    slug = f"praticien{id_praticien}_" if id_praticien else ""
+    filename = f"{resource}_{slug}export.csv"
     return Response(
         content=content,
         media_type="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{resource}_export.csv",
+            "Content-Disposition": f"attachment; filename*=UTF-8''{filename}",
         },
     )

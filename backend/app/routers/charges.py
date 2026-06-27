@@ -2,7 +2,6 @@ from typing import Optional
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 from app import crud, schemas, models
 from app.database import get_db
 from app.routers.auth import get_current_user
@@ -113,9 +112,13 @@ def delete_charge(
     current_user: dict = Depends(get_current_user),
 ):
     if current_user["role"] == RoleUser.SECRETAIRE:
-        raise HTTPException(status_code=403, detail="Seul un praticien peut supprimer une charge.")
+        raise HTTPException(
+            status_code=403, detail="Seul un praticien peut supprimer une charge."
+        )
 
-    db_charge = db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    db_charge = (
+        db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    )
     if db_charge is None:
         raise HTTPException(status_code=404, detail="Charge introuvable.")
 

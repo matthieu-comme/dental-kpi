@@ -36,7 +36,7 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
             </button>
           ))}
         </div>
-        <ExportCsv token={token} resources={['devis', 'cheques', 'journees']} />
+        <ExportCsv token={token} resources={['devis', 'cheques', 'journees']} praticiens={praticiens} />
       </div>
 
       {activeTab === 'devis' && (

@@ -1,4 +1,3 @@
-import pytest
 from app import models
 from app.routers.auth import create_access_token
 from tests.conftest import (
@@ -202,7 +201,8 @@ def test_create_log_praticien_forbidden(prat_headers):
 
 def test_create_praticien(sec_headers):
     r = client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. Nouveau", "pin_clair": "222222"},
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Nouveau", "pin_clair": "222222"},
         headers=sec_headers,
     )
     assert r.status_code == 200
@@ -220,7 +220,8 @@ def test_create_praticien_sans_token_retourne_401():
 
 def test_create_praticien_invalid_pin(sec_headers):
     r = client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. Invalide", "pin_clair": "123"},
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Invalide", "pin_clair": "123"},
         headers=sec_headers,
     )
     assert r.status_code == 422
@@ -254,7 +255,11 @@ def test_update_praticien(praticien_id, sec_headers):
 
 
 def test_praticien_cannot_access_other_praticien(praticien_id, sec_headers):
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "333333"}, headers=sec_headers)
+    client.post(
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Autre", "pin_clair": "333333"},
+        headers=sec_headers,
+    )
     db = TestingSessionLocal()
     autre = (
         db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
@@ -398,7 +403,11 @@ def test_delete_devis_not_found(sec_headers):
 
 
 def test_praticien_cannot_access_other_devis(praticien_id, sec_headers):
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "444444"}, headers=sec_headers)
+    client.post(
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Autre", "pin_clair": "444444"},
+        headers=sec_headers,
+    )
     db = TestingSessionLocal()
     autre = (
         db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
@@ -481,7 +490,11 @@ def test_delete_cheque_not_found(sec_headers):
 
 
 def test_praticien_cannot_access_other_cheque(praticien_id, sec_headers):
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "555555"}, headers=sec_headers)
+    client.post(
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Autre", "pin_clair": "555555"},
+        headers=sec_headers,
+    )
     db = TestingSessionLocal()
     autre = (
         db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
@@ -507,7 +520,9 @@ def test_praticien_cannot_access_other_cheque(praticien_id, sec_headers):
 
 
 def test_create_journee(praticien_id, sec_headers):
-    r = client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    r = client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     assert r.status_code == 201
     assert r.json()["nb_patients_vus"] == 10
 
@@ -518,18 +533,26 @@ def test_create_journee_sans_token_retourne_401(praticien_id):
 
 
 def test_create_journee_duplicate(praticien_id, sec_headers):
-    client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
-    r = client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
+    r = client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     assert r.status_code == 409
 
 
 def test_create_journee_praticien_inexistant(sec_headers):
-    r = client.post("/api/v1/journees/", json=_journee_payload(9999), headers=sec_headers)
+    r = client.post(
+        "/api/v1/journees/", json=_journee_payload(9999), headers=sec_headers
+    )
     assert r.status_code == 400
 
 
 def test_read_journees(sec_headers, praticien_id):
-    client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     r = client.get("/api/v1/journees/", headers=sec_headers)
     assert r.status_code == 200
     assert len(r.json()) == 1
@@ -805,7 +828,9 @@ def test_read_deviss_filter_no_match(sec_headers, praticien_id):
 
 def test_read_deviss_praticien_scope(prat_headers, sec_headers, praticien_id):
     client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. ScopeD", "pin_clair": "221122"}, headers=sec_headers
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. ScopeD", "pin_clair": "221122"},
+        headers=sec_headers,
     )
     db = TestingSessionLocal()
     autre = (
@@ -885,7 +910,9 @@ def test_read_cheques_filter_montant(sec_headers, praticien_id):
 
 def test_read_cheques_praticien_scope(prat_headers, sec_headers, praticien_id):
     client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. ScopeC", "pin_clair": "331133"}, headers=sec_headers
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. ScopeC", "pin_clair": "331133"},
+        headers=sec_headers,
     )
     db = TestingSessionLocal()
     autre = (
@@ -910,7 +937,9 @@ def test_read_cheques_praticien_scope(prat_headers, sec_headers, praticien_id):
 
 
 def test_read_journees_filter_date_range(sec_headers, praticien_id):
-    client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     payload_late = {**_journee_payload(praticien_id), "date_jour": "2023-06-15"}
     client.post("/api/v1/journees/", json=payload_late, headers=sec_headers)
     r = client.get(
@@ -923,7 +952,9 @@ def test_read_journees_filter_date_range(sec_headers, praticien_id):
 
 def test_read_journees_filter_praticien(sec_headers, praticien_id):
     client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. ScopeJ", "pin_clair": "441144"}, headers=sec_headers
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. ScopeJ", "pin_clair": "441144"},
+        headers=sec_headers,
     )
     db = TestingSessionLocal()
     autre = (
@@ -933,7 +964,9 @@ def test_read_journees_filter_praticien(sec_headers, praticien_id):
     assert autre is not None
     autre_id = autre.id_praticien
     db.close()
-    client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     client.post(
         "/api/v1/journees/",
         json={**_journee_payload(autre_id), "date_jour": "2023-01-02"},
@@ -949,7 +982,9 @@ def test_read_journees_filter_praticien(sec_headers, praticien_id):
 
 def test_read_journees_praticien_scope(praticien_id, sec_headers):
     client.post(
-        "/api/v1/praticiens/", json={"nom": "Dr. ScopeJ2", "pin_clair": "551155"}, headers=sec_headers
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. ScopeJ2", "pin_clair": "551155"},
+        headers=sec_headers,
     )
     db = TestingSessionLocal()
     autre = (
@@ -958,7 +993,9 @@ def test_read_journees_praticien_scope(praticien_id, sec_headers):
     assert autre is not None
     autre_id = autre.id_praticien
     db.close()
-    client.post("/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers)
+    client.post(
+        "/api/v1/journees/", json=_journee_payload(praticien_id), headers=sec_headers
+    )
     client.post(
         "/api/v1/journees/",
         json={**_journee_payload(autre_id), "date_jour": "2023-01-02"},
@@ -1111,6 +1148,7 @@ def test_read_charges_filter_montant(prat_headers, praticien_id):
 # ============================================================
 # IMPORT CSV — formats noms techniques ET labels français
 # ============================================================
+
 
 def _csv(header: str, *rows: str) -> bytes:
     return ("\n".join([header, *rows])).encode("utf-8")

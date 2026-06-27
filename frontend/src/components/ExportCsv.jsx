@@ -7,7 +7,7 @@ const RESOURCES = {
     label: 'Devis',
     columns: [
       { key: 'id_devis', label: 'N° devis' },
-      { key: 'id_praticien', label: 'N° praticien' },
+      { key: 'id_praticien', label: 'Praticien' },
       { key: 'id_patient', label: 'N° patient' },
       { key: 'montant', label: 'Montant (€)' },
       { key: 'temps_previsionnel_minutes', label: 'Temps prévu (min)' },
@@ -21,7 +21,7 @@ const RESOURCES = {
     label: 'Chèques',
     columns: [
       { key: 'id_cheque', label: 'N° chèque' },
-      { key: 'id_praticien', label: 'N° praticien' },
+      { key: 'id_praticien', label: 'Praticien' },
       { key: 'id_patient', label: 'N° patient' },
       { key: 'montant', label: 'Montant (€)' },
       { key: 'date_reception', label: 'Date réception' },
@@ -33,7 +33,7 @@ const RESOURCES = {
     label: 'Journées',
     columns: [
       { key: 'id_journee', label: 'N° journée' },
-      { key: 'id_praticien', label: 'N° praticien' },
+      { key: 'id_praticien', label: 'Praticien' },
       { key: 'date_jour', label: 'Date' },
       { key: 'nb_patients_vus', label: 'Patients vus' },
       { key: 'nb_nouveaux_patients', label: 'Nouveaux patients' },
@@ -47,7 +47,7 @@ const RESOURCES = {
     label: 'Charges',
     columns: [
       { key: 'id_charge', label: 'N° charge' },
-      { key: 'id_praticien', label: 'N° praticien' },
+      { key: 'id_praticien', label: 'Praticien' },
       { key: 'designation', label: 'Désignation' },
       { key: 'montant', label: 'Montant (€)' },
       { key: 'periodicite', label: 'Périodicité' },
@@ -58,10 +58,11 @@ const RESOURCES = {
   },
 }
 
-export default function ExportCsv({ token, resources: allowedKeys, standalone = false }) {
+export default function ExportCsv({ token, resources: allowedKeys, praticiens = [], standalone = false }) {
   const [open, setOpen] = useState(false)
   const [resource, setResource] = useState(null)
   const [selectedCols, setSelectedCols] = useState([])
+  const [selectedPraticien, setSelectedPraticien] = useState('')
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
@@ -73,6 +74,7 @@ export default function ExportCsv({ token, resources: allowedKeys, standalone = 
   function pickResource(key) {
     setResource(key)
     setSelectedCols(RESOURCES[key].columns.map(c => c.key))
+    setSelectedPraticien('')
     setError('')
     setSuccess('')
   }
@@ -91,6 +93,7 @@ export default function ExportCsv({ token, resources: allowedKeys, standalone = 
   function reset() {
     setResource(null)
     setSelectedCols([])
+    setSelectedPraticien('')
     setError('')
     setSuccess('')
   }
@@ -109,6 +112,7 @@ export default function ExportCsv({ token, resources: allowedKeys, standalone = 
     setError('')
     setSuccess('')
     const params = new URLSearchParams({ resource, columns: selectedCols.join(',') })
+    if (selectedPraticien) params.set('id_praticien', selectedPraticien)
     try {
       const res = await fetch(`${API_BASE}/api/v1/export/csv?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -122,7 +126,9 @@ export default function ExportCsv({ token, resources: allowedKeys, standalone = 
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${resource}_export.csv`
+      const pratNom = praticiens.find(p => String(p.id_praticien) === selectedPraticien)?.nom
+      const pratSlug = pratNom ? `_${pratNom.replace(/\s+/g, '_')}` : ''
+      a.download = `${resource}${pratSlug}_export.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -161,6 +167,28 @@ export default function ExportCsv({ token, resources: allowedKeys, standalone = 
           ))}
         </div>
       </div>
+
+      {praticiens.length > 0 && (
+        <div className="form-group">
+          <label>Praticien</label>
+          <select
+            className="export-praticien-select"
+            value={selectedPraticien}
+            onChange={e => {
+              setSelectedPraticien(e.target.value)
+              // Colonne "Praticien" redondante si un praticien est déjà filtré
+              if (e.target.value) {
+                setSelectedCols(prev => prev.filter(c => c !== 'id_praticien'))
+              }
+            }}
+          >
+            <option value="">Tous les praticiens</option>
+            {praticiens.map(p => (
+              <option key={p.id_praticien} value={p.id_praticien}>{p.nom}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {resource && (
         <div className="form-group">

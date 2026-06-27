@@ -120,16 +120,16 @@ export default function SecretairePage() {
           Chèques
         </button>
         <button
-          className={`tab-btn ${activeTab === 'donnees' ? 'tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('donnees')}
-        >
-          Données
-        </button>
-        <button
           className={`tab-btn ${activeTab === 'cloture' ? 'tab-btn--active' : ''}`}
           onClick={() => setActiveTab('cloture')}
         >
           Clôture journée
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'donnees' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('donnees')}
+        >
+          Données
         </button>
         <button
           className={`tab-btn ${activeTab === 'import' ? 'tab-btn--active' : ''}`}
@@ -187,6 +187,7 @@ export default function SecretairePage() {
           <ExportCsv
             token={secretaireToken}
             resources={['devis', 'cheques', 'journees']}
+            praticiens={praticiens}
             standalone
           />
         )}

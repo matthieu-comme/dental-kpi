@@ -1,8 +1,8 @@
 """
 Tests d'intégration pour POST /api/v1/imports/devis et /cheques.
 """
+
 import io
-import pytest
 from datetime import date, timedelta
 
 from app import models
@@ -10,7 +10,7 @@ from tests.conftest import client, TestingSessionLocal
 
 TODAY = date.today()
 
-DEVIS_HEADER  = "id_patient,montant,temps_previsionnel_minutes,date_emission,statut,date_decision,motif_refus"
+DEVIS_HEADER = "id_patient,montant,temps_previsionnel_minutes,date_emission,statut,date_decision,motif_refus"
 CHEQUE_HEADER = "id_patient,montant,date_reception,date_depot_prevue,statut"
 
 
@@ -46,38 +46,55 @@ def _post_cheques(praticien_id, content, headers):
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
 
+
 def test_import_devis_sans_token_retourne_401(praticien_id):
     csv = _csv(DEVIS_HEADER)
-    assert client.post(
-        f"/api/v1/imports/devis?id_praticien={praticien_id}",
-        files=_upload(csv),
-    ).status_code == 401
+    assert (
+        client.post(
+            f"/api/v1/imports/devis?id_praticien={praticien_id}",
+            files=_upload(csv),
+        ).status_code
+        == 401
+    )
 
 
 def test_import_cheques_sans_token_retourne_401(praticien_id):
     csv = _csv(CHEQUE_HEADER)
-    assert client.post(
-        f"/api/v1/imports/cheques?id_praticien={praticien_id}",
-        files=_upload(csv),
-    ).status_code == 401
+    assert (
+        client.post(
+            f"/api/v1/imports/cheques?id_praticien={praticien_id}",
+            files=_upload(csv),
+        ).status_code
+        == 401
+    )
 
 
 def test_import_devis_praticien_autre_retourne_403(praticien_id, sec_headers):
-    client.post("/api/v1/praticiens/", json={"nom": "Dr. Autre", "pin_clair": "222222"}, headers=sec_headers)
+    client.post(
+        "/api/v1/praticiens/",
+        json={"nom": "Dr. Autre", "pin_clair": "222222"},
+        headers=sec_headers,
+    )
     db = TestingSessionLocal()
-    autre = db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
+    autre = (
+        db.query(models.Praticien).filter(models.Praticien.nom == "Dr. Autre").first()
+    )
     assert autre is not None
     autre_id = autre.id_praticien
     db.close()
 
     from app.routers.auth import create_access_token
-    autre_headers = {"Authorization": f"Bearer {create_access_token({'sub': str(autre_id), 'role': 'praticien'})}"}
+
+    autre_headers = {
+        "Authorization": f"Bearer {create_access_token({'sub': str(autre_id), 'role': 'praticien'})}"
+    }
 
     csv = _csv(DEVIS_HEADER)
     assert _post_devis(praticien_id, csv, autre_headers).status_code == 403
 
 
 # ── Import devis — cas nominaux ───────────────────────────────────────────────
+
 
 def test_import_devis_csv_vide(praticien_id, sec_headers):
     csv = _csv(DEVIS_HEADER)
@@ -164,6 +181,7 @@ def test_import_devis_praticien_peut_importer_pour_lui(prat_headers, praticien_i
 
 # ── Import devis — erreurs ────────────────────────────────────────────────────
 
+
 def test_import_devis_montant_invalide(praticien_id, sec_headers):
     csv = _csv(DEVIS_HEADER, f"P001,abc,60,{TODAY},EN_ATTENTE,,")
     d = _post_devis(praticien_id, csv, sec_headers).json()
@@ -199,9 +217,9 @@ def test_import_devis_date_decision_avant_emission(praticien_id, sec_headers):
 def test_import_devis_mixte_valides_et_erreurs(praticien_id, sec_headers):
     csv = _csv(
         DEVIS_HEADER,
-        f"P001,1500,60,{TODAY},EN_ATTENTE,,",   # valide
+        f"P001,1500,60,{TODAY},EN_ATTENTE,,",  # valide
         "P002,abc,60,2024-01-01,EN_ATTENTE,,",  # montant invalide
-        f"P003,500,30,{TODAY},EN_ATTENTE,,",     # valide
+        f"P003,500,30,{TODAY},EN_ATTENTE,,",  # valide
     )
     d = _post_devis(praticien_id, csv, sec_headers).json()
     assert d["total"] == 3
@@ -211,6 +229,7 @@ def test_import_devis_mixte_valides_et_erreurs(praticien_id, sec_headers):
 
 
 # ── Import chèques — cas nominaux ─────────────────────────────────────────────
+
 
 def test_import_cheques_csv_vide(praticien_id, sec_headers):
     csv = _csv(CHEQUE_HEADER)
@@ -275,6 +294,7 @@ def test_import_cheques_plusieurs_lignes(praticien_id, sec_headers):
 
 # ── Import chèques — erreurs ──────────────────────────────────────────────────
 
+
 def test_import_cheques_montant_invalide(praticien_id, sec_headers):
     csv = _csv(CHEQUE_HEADER, f"P001,xyz,{TODAY},,EN_ATTENTE")
     d = _post_cheques(praticien_id, csv, sec_headers).json()
@@ -292,9 +312,9 @@ def test_import_cheques_date_invalide(praticien_id, sec_headers):
 def test_import_cheques_mixte_valides_et_erreurs(praticien_id, sec_headers):
     csv = _csv(
         CHEQUE_HEADER,
-        f"P001,100,{TODAY},,EN_ATTENTE",   # valide
-        "P002,xyz,2024-01-01,,EN_ATTENTE", # montant invalide
-        f"P003,300,{TODAY},,EN_ATTENTE",   # valide
+        f"P001,100,{TODAY},,EN_ATTENTE",  # valide
+        "P002,xyz,2024-01-01,,EN_ATTENTE",  # montant invalide
+        f"P003,300,{TODAY},,EN_ATTENTE",  # valide
     )
     d = _post_cheques(praticien_id, csv, sec_headers).json()
     assert d["importes"] == 2
@@ -303,6 +323,7 @@ def test_import_cheques_mixte_valides_et_erreurs(praticien_id, sec_headers):
 
 
 # ── Import chèques — alias statut ────────────────────────────────────────────
+
 
 def test_import_cheques_statut_ok_mappe_depose(praticien_id, sec_headers):
     """'ok' → DEPOSE pour les chèques."""
@@ -391,6 +412,7 @@ def test_import_devis_ok_reste_accepte(praticien_id, sec_headers):
 
 # ── Templates ─────────────────────────────────────────────────────────────────
 
+
 def test_template_devis_telechargeable(sec_headers):
     r = client.get("/api/v1/imports/template/devis", headers=sec_headers)
     assert r.status_code == 200
@@ -407,6 +429,7 @@ def test_template_cheques_telechargeable(sec_headers):
 
 
 # ── Normalisation — montant format français ───────────────────────────────────
+
 
 def test_import_devis_montant_virgule_decimale(praticien_id, sec_headers):
     """'753,42 €' (virgule décimale, symbole €) → float valide."""
@@ -433,6 +456,7 @@ def test_import_devis_montant_espace_milliers(praticien_id, sec_headers):
 
 
 # ── Normalisation — formats de date ──────────────────────────────────────────
+
 
 def test_import_devis_date_jj_mm_aa(praticien_id, sec_headers):
     """DD/MM/YY (ex: 04/04/26) → 2026-04-04."""
@@ -480,6 +504,7 @@ def test_import_devis_date_incomplete_produit_erreur(praticien_id, sec_headers):
 
 # ── Normalisation — alias statut ──────────────────────────────────────────────
 
+
 def test_import_devis_statut_ok(praticien_id, sec_headers):
     """'ok' → ACCEPTE."""
     csv = _csv(DEVIS_HEADER, f"P001,1500,60,{TODAY},ok,{TODAY},")
@@ -515,12 +540,11 @@ def test_import_devis_statut_rappeler(praticien_id, sec_headers):
 
 # ── Normalisation — structure fichier ─────────────────────────────────────────
 
+
 def test_import_devis_ligne_titre_ignoree(praticien_id, sec_headers):
     """Ligne titre 'DEVIS,,,,,,' avant les en-têtes est ignorée automatiquement."""
     content = (
-        f"DEVIS,,,,,\n"
-        f"{DEVIS_HEADER}\n"
-        f"P001,1500,60,{TODAY},EN_ATTENTE,,\n"
+        f"DEVIS,,,,,\n{DEVIS_HEADER}\nP001,1500,60,{TODAY},EN_ATTENTE,,\n"
     ).encode("utf-8")
     r = client.post(
         f"/api/v1/imports/devis?id_praticien={praticien_id}",
@@ -561,4 +585,142 @@ def test_import_devis_google_sheets_complet(praticien_id, sec_headers):
     d = r.json()
     assert d["total"] == 3
     assert d["importes"] == 3
+    assert d["erreurs"] == []
+
+
+JOURNEE_HEADER = "date_jour,nb_patients_vus,nb_nouveaux_patients,nb_rdv_manques_connus,nb_rdv_manques_nouveaux,temps_presence_minutes,temps_perdu_minutes"
+
+
+def _post_journees(praticien_id, content, headers):
+    return client.post(
+        f"/api/v1/imports/journees?id_praticien={praticien_id}",
+        files=_upload(content),
+        headers=headers,
+    )
+
+
+# ── Import journées — cas nominaux ────────────────────────────────────────────
+
+def test_import_journees_une_ligne(sec_headers, praticien_id):
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,1,0,480,30")
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 1
+    assert d["erreurs"] == []
+    db = TestingSessionLocal()
+    j = db.query(models.Journee).filter_by(id_praticien=praticien_id).first()
+    assert j is not None
+    assert j.nb_patients_vus == 8
+    assert j.temps_presence_minutes == 480
+    db.close()
+
+
+def test_import_journees_plusieurs_lignes(sec_headers, praticien_id):
+    demain = (TODAY + timedelta(days=1)).isoformat()
+    csv = _csv(
+        JOURNEE_HEADER,
+        f"{TODAY},8,2,1,0,480,30",
+        f"{demain},10,3,0,1,450,0",
+    )
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["total"] == 2
+    assert d["importes"] == 2
+    assert d["erreurs"] == []
+
+
+def test_import_journees_date_jj_mm_aa(sec_headers, praticien_id):
+    """DD/MM/YY normalisé correctement."""
+    csv = _csv(JOURNEE_HEADER, "15/01/24,5,1,0,0,360,0")
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 1
+    db = TestingSessionLocal()
+    j = db.query(models.Journee).filter_by(id_praticien=praticien_id).first()
+    assert j.date_jour.isoformat() == "2024-01-15"
+    db.close()
+
+
+def test_import_journees_champs_vides_defaut_zero(sec_headers, praticien_id):
+    """Champs entiers vides → défaut 0 (sauf temps_presence qui doit être > 0)."""
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},,,,,480,")
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 1
+    assert d["erreurs"] == []
+    db = TestingSessionLocal()
+    j = db.query(models.Journee).filter_by(id_praticien=praticien_id).first()
+    assert j.nb_patients_vus == 0
+    assert j.temps_perdu_minutes == 0
+    db.close()
+
+
+def test_import_journees_sans_token_retourne_401(praticien_id):
+    csv = _csv(JOURNEE_HEADER)
+    assert client.post(
+        f"/api/v1/imports/journees?id_praticien={praticien_id}",
+        files=_upload(csv),
+    ).status_code == 401
+
+
+# ── Import journées — erreurs ─────────────────────────────────────────────────
+
+def test_import_journees_doublon_meme_date(sec_headers, praticien_id):
+    """Deux journées pour le même praticien à la même date → erreur sur la 2e."""
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,1,0,480,30")
+    _post_journees(praticien_id, csv, sec_headers)
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 0
+    assert len(d["erreurs"]) == 1
+    assert "existe déjà" in d["erreurs"][0]["message"]
+
+
+def test_import_journees_temps_presence_zero_erreur(sec_headers, praticien_id):
+    """temps_presence_minutes = 0 → erreur (contrainte gt=0)."""
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,0,0,0,0")
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 0
+    assert len(d["erreurs"]) == 1
+
+
+def test_import_journees_temps_perdu_superieur_presence(sec_headers, praticien_id):
+    """temps_perdu > temps_presence → erreur de validation métier."""
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,0,0,60,120")
+    d = _post_journees(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 0
+    assert len(d["erreurs"]) == 1
+
+
+def test_import_journees_mauvais_fichier_devis(sec_headers, praticien_id):
+    """Importer un CSV devis comme journée → 400 clair."""
+    csv = _csv(DEVIS_HEADER, f"P001,1500,60,{TODAY},EN_ATTENTE,,")
+    r = _post_journees(praticien_id, csv, sec_headers)
+    assert r.status_code == 400
+    assert "journees" in r.json()["detail"]
+    assert "date_jour" in r.json()["detail"]
+
+
+def test_import_devis_mauvais_fichier_journees(sec_headers, praticien_id):
+    """Importer un CSV journée comme devis → 400 clair."""
+    csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,1,0,480,30")
+    r = _post_devis(praticien_id, csv, sec_headers)
+    assert r.status_code == 400
+    assert "devis" in r.json()["detail"]
+    assert "id_patient" in r.json()["detail"]
+
+
+def test_import_cheques_mauvais_fichier_devis(sec_headers, praticien_id):
+    """Importer un CSV devis comme chèque → 400 clair."""
+    csv = _csv(DEVIS_HEADER, f"P001,1500,60,{TODAY},EN_ATTENTE,,")
+    r = _post_cheques(praticien_id, csv, sec_headers)
+    assert r.status_code == 400
+    assert "cheques" in r.json()["detail"]
+    assert "date_reception" in r.json()["detail"]
+
+
+def test_import_journees_export_reimportable(sec_headers, praticien_id):
+    """Un export journées (avec labels français) peut être réimporté."""
+    export_content = (
+        "N° journée,Praticien,Date,Patients vus,Nouveaux patients,"
+        "RDV manqués connus,RDV manqués nouveaux,Présence (min),Temps perdu (min)\n"
+        f"1,Dr. Test,{TODAY},8,2,1,0,480,30\n"
+    ).encode("utf-8")
+    d = _post_journees(praticien_id, export_content, sec_headers).json()
+    assert d["importes"] == 1
     assert d["erreurs"] == []

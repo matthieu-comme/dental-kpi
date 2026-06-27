@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
-from app.utils import hash_pin, check_pin
+from app.utils import hash_pin
 from app.models import TypeAction, TypeEntite
 
 # CONFIG
@@ -400,7 +400,9 @@ def update_charge(db: Session, id_charge: int, charge_update: schemas.ChargeUpda
 
 
 def delete_charge(db: Session, id_charge: int):
-    db_charge = db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    db_charge = (
+        db.query(models.Charge).filter(models.Charge.id_charge == id_charge).first()
+    )
     if not db_charge:
         return None
     db.delete(db_charge)

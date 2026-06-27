@@ -3,6 +3,7 @@ import io
 import re
 from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
 from app import schemas, crud
 from app.database import get_db
@@ -12,6 +13,7 @@ router = APIRouter(prefix="/api/v1/imports", tags=["Imports CSV"])
 
 DEVIS_COLONNES = "id_patient,montant,temps_previsionnel_minutes,date_emission,statut,date_decision,motif_refus"
 CHEQUE_COLONNES = "id_patient,montant,date_reception,date_depot_prevue,statut"
+JOURNEE_COLONNES = "date_jour,nb_patients_vus,nb_nouveaux_patients,nb_rdv_manques_connus,nb_rdv_manques_nouveaux,temps_presence_minutes,temps_perdu_minutes"
 
 # Mapping labels français (export) → noms techniques (import)
 _DEVIS_LABELS: dict[str, str] = {
@@ -24,6 +26,18 @@ _DEVIS_LABELS: dict[str, str] = {
     "Date décision": "date_decision",
     "Statut": "statut",
     "Motif refus": "motif_refus",
+}
+
+_JOURNEE_LABELS: dict[str, str] = {
+    "N° journée": "id_journee",           # ignoré à l'import
+    "Praticien": "id_praticien",           # ignoré à l'import
+    "Date": "date_jour",
+    "Patients vus": "nb_patients_vus",
+    "Nouveaux patients": "nb_nouveaux_patients",
+    "RDV manqués connus": "nb_rdv_manques_connus",
+    "RDV manqués nouveaux": "nb_rdv_manques_nouveaux",
+    "Présence (min)": "temps_presence_minutes",
+    "Temps perdu (min)": "temps_perdu_minutes",
 }
 
 _CHEQUE_LABELS: dict[str, str] = {
@@ -137,6 +151,30 @@ def _parse_csv(content: bytes) -> list[dict]:
     return [r for r in rows if any(v.strip() for v in r.values())]
 
 
+_REQUIRED_COLS: dict[str, list[str]] = {
+    "devis":    ["id_patient", "montant", "date_emission"],
+    "cheques":  ["id_patient", "montant", "date_reception"],
+    "journees": ["date_jour", "temps_presence_minutes"],
+}
+
+
+def _check_headers(rows: list[dict], resource: str) -> None:
+    """Lève 400 si les colonnes clés du type attendu sont absentes du fichier."""
+    if not rows:
+        return
+    actual = set(rows[0].keys())
+    missing = [c for c in _REQUIRED_COLS.get(resource, []) if c not in actual]
+    if missing:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Le fichier ne correspond pas au format « {resource} ». "
+                f"Colonnes requises introuvables : {', '.join(missing)}. "
+                f"En-têtes détectés : {', '.join(sorted(actual))}."
+            ),
+        )
+
+
 def _fmt_errors(e: ValidationError) -> str:
     return ", ".join(
         f"{err['loc'][-1] if err['loc'] else 'valeur'}: {err['msg']}"
@@ -164,6 +202,7 @@ async def import_devis(
     _check_auth(current_user, id_praticien)
 
     rows = _normalize(_parse_csv(await file.read()), _DEVIS_LABELS)
+    _check_headers(rows, "devis")
     valides: list[schemas.DevisCreate] = []
     erreurs: list[dict] = []
 
@@ -210,6 +249,7 @@ async def import_cheques(
     _check_auth(current_user, id_praticien)
 
     rows = _normalize(_parse_csv(await file.read()), _CHEQUE_LABELS)
+    _check_headers(rows, "cheques")
     valides: list[schemas.ChequeCreate] = []
     erreurs: list[dict] = []
 
@@ -243,6 +283,62 @@ async def import_cheques(
     return {"total": len(rows), "importes": importes, "erreurs": erreurs}
 
 
+@router.post("/journees")
+async def import_journees(
+    id_praticien: int = Query(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    _check_auth(current_user, id_praticien)
+
+    rows = _normalize(_parse_csv(await file.read()), _JOURNEE_LABELS)
+    _check_headers(rows, "journees")
+    valides: list[schemas.JourneeCreate] = []
+    erreurs: list[dict] = []
+
+    for i, row in enumerate(rows, start=2):
+        def _int(key: str, default: str = "0") -> str:
+            v = row.get(key, "").strip()
+            return v if v else default
+
+        try:
+            valides.append(
+                schemas.JourneeCreate.model_validate(
+                    {
+                        "id_praticien": id_praticien,
+                        "date_jour": _norm_date(row.get("date_jour", "")),
+                        "nb_patients_vus": _int("nb_patients_vus"),
+                        "nb_nouveaux_patients": _int("nb_nouveaux_patients"),
+                        "nb_rdv_manques_connus": _int("nb_rdv_manques_connus"),
+                        "nb_rdv_manques_nouveaux": _int("nb_rdv_manques_nouveaux"),
+                        "temps_presence_minutes": _int("temps_presence_minutes"),
+                        "temps_perdu_minutes": _int("temps_perdu_minutes"),
+                    }
+                )
+            )
+        except ValidationError as e:
+            erreurs.append({"ligne": i, "errors": e.errors(), "contenu": _row_summary(row), "row": dict(row)})
+        except Exception as e:
+            erreurs.append({"ligne": i, "message": str(e), "contenu": _row_summary(row), "row": dict(row)})
+
+    importes = 0
+    for schema in valides:
+        try:
+            crud.create_journee(db, schema)
+            importes += 1
+        except IntegrityError:
+            db.rollback()
+            erreurs.append({
+                "ligne": "?",
+                "message": f"Une journée existe déjà pour ce praticien au {schema.date_jour}.",
+            })
+        except Exception as e:
+            erreurs.append({"ligne": "?", "message": str(e)})
+
+    return {"total": len(rows), "importes": importes, "erreurs": erreurs}
+
+
 @router.get("/template/devis")
 def template_devis():
     from fastapi.responses import Response
@@ -264,4 +360,16 @@ def template_cheques():
         + "\n1234,250.00,2024-01-15,2024-02-01,EN_ATTENTE\n5678,500.00,2024-01-16,,EN_ATTENTE\n",
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=template_cheques.csv"},
+    )
+
+
+@router.get("/template/journees")
+def template_journees():
+    from fastapi.responses import Response
+
+    return Response(
+        content=JOURNEE_COLONNES
+        + "\n2024-01-15,8,2,1,0,480,30\n2024-01-16,10,3,0,1,450,0\n",
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=template_journees.csv"},
     )

@@ -20,6 +20,14 @@ const TYPES = {
       'P002,500.00,2024-01-16,,EN_ATTENTE',
     ],
   },
+  journees: {
+    label: 'Journées',
+    colonnes: 'date_jour,nb_patients_vus,nb_nouveaux_patients,nb_rdv_manques_connus,nb_rdv_manques_nouveaux,temps_presence_minutes,temps_perdu_minutes',
+    exemple: [
+      '2024-01-15,8,2,1,0,480,30',
+      '2024-01-16,10,3,0,1,450,0',
+    ],
+  },
 }
 
 function downloadTemplate(type) {
@@ -51,6 +59,10 @@ export default function CsvImport({ token, idPraticien, onSuccess }) {
         { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form }
       )
       const data = await res.json()
+      if (!res.ok) {
+        setResult({ total: 0, importes: 0, erreurs: [{ ligne: '—', message: data.detail || 'Erreur lors de l\'import.' }] })
+        return
+      }
       setResult(data)
       if (data.importes > 0) onSuccess?.()
     } catch {

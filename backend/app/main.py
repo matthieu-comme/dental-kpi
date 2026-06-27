@@ -1,9 +1,7 @@
 import os
 import warnings
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.routers import (
@@ -30,7 +28,10 @@ models.Base.metadata.create_all(bind=engine)
 
 def _check_insecure_defaults():
     from app.config import Settings
-    _defaults = {k: f.default for k, f in Settings.model_fields.items() if f.default is not None}
+
+    _defaults = {
+        k: f.default for k, f in Settings.model_fields.items() if f.default is not None
+    }
     issues = [
         f"{key}={repr(getattr(settings, key))}"
         for key in ("SECRET_KEY", "GLOBAL_PASSWORD", "GLOBAL_USERNAME")
@@ -38,7 +39,7 @@ def _check_insecure_defaults():
     ]
     if issues:
         warnings.warn(
-            f"\n⚠️  SÉCURITÉ : variables d'environnement non configurées — {', '.join(issues)}\n"
+            f"\nSÉCURITÉ : variables d'environnement non configurées — {', '.join(issues)}\n"
             "   Modifiez backend/.env avant tout déploiement.",
             stacklevel=1,
         )
