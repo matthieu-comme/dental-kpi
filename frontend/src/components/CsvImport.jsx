@@ -150,6 +150,7 @@ export default function CsvImport({ token, idPraticien, onSuccess }) {
             <div className="csv-import__summary-row">
               <div className={`csv-import__summary ${result.importes > 0 ? 'csv-import__summary--ok' : 'csv-import__summary--warn'}`}>
                 {result.importes} / {result.total} ligne{result.total > 1 ? 's' : ''} importée{result.importes > 1 ? 's' : ''}
+                {result.doublons?.length > 0 && ` · ${result.doublons.length} doublon${result.doublons.length > 1 ? 's' : ''} ignoré${result.doublons.length > 1 ? 's' : ''}`}
                 {result.erreurs.length > 0 && ` · ${result.erreurs.length} erreur${result.erreurs.length > 1 ? 's' : ''}`}
               </div>
               {result.erreurs.length > 0 && result.erreurs.some(e => e.row) && (
@@ -158,6 +159,21 @@ export default function CsvImport({ token, idPraticien, onSuccess }) {
                 </button>
               )}
             </div>
+            {result.doublons?.length > 0 && (
+              <ul className="csv-import__errors csv-import__doublons">
+                {result.doublons.map((d, i) => (
+                  <li key={i} className="csv-import__doublon">
+                    <div className="csv-import__error-header">
+                      <span className="csv-import__error-line">Ligne {d.ligne}</span>
+                      <span className="csv-import__doublon-msg">Déjà présent en base — ignoré</span>
+                    </div>
+                    {d.contenu && (
+                      <div className="csv-import__error-contenu">{d.contenu}</div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
             {result.erreurs.length > 0 && (
               <ul className="csv-import__errors">
                 {result.erreurs.map((e, i) => (

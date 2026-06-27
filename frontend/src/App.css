@@ -1824,6 +1824,22 @@ body {
   gap: 4px;
 }
 
+.csv-import__doublon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.82rem;
+  padding: 6px 10px;
+  background: #fffbeb;
+  border-left: 3px solid #f6ad55;
+  border-radius: 0 4px 4px 0;
+}
+
+.csv-import__doublon-msg {
+  color: #92400e;
+  font-style: italic;
+}
+
 .csv-import__error {
   display: flex;
   flex-direction: column;

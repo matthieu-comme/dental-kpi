@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from pydantic import ValidationError
-from app import schemas, crud
+from app import schemas, crud, models
 from app.database import get_db
 from app.routers.auth import get_current_user
 
@@ -203,26 +203,39 @@ async def import_devis(
 
     rows = _normalize(_parse_csv(await file.read()), _DEVIS_LABELS)
     _check_headers(rows, "devis")
+
+    existing_keys: set[tuple] = {
+        (d.id_patient, d.date_emission, round(d.montant, 2))
+        for d in db.query(models.Devis.id_patient, models.Devis.date_emission, models.Devis.montant)
+        .filter(models.Devis.id_praticien == id_praticien)
+        .all()
+    }
+
     valides: list[schemas.DevisCreate] = []
+    doublons: list[dict] = []
     erreurs: list[dict] = []
 
     for i, row in enumerate(rows, start=2):
         try:
             temps_raw = row.get("temps_previsionnel_minutes", "").strip()
-            valides.append(
-                schemas.DevisCreate.model_validate(
-                    {
-                        "id_praticien": id_praticien,
-                        "id_patient": row.get("id_patient", "").strip(),
-                        "montant": _norm_montant(row.get("montant", "")),
-                        "temps_previsionnel_minutes": temps_raw if temps_raw else "1",
-                        "date_emission": _norm_date(row.get("date_emission", "")),
-                        "statut": _norm_statut(row.get("statut", "EN_ATTENTE"), _STATUT_DEVIS_ALIASES),
-                        "date_decision": _maybe_date(_opt(row, "date_decision")),
-                        "motif_refus": _opt(row, "motif_refus"),
-                    }
-                )
+            schema = schemas.DevisCreate.model_validate(
+                {
+                    "id_praticien": id_praticien,
+                    "id_patient": row.get("id_patient", "").strip(),
+                    "montant": _norm_montant(row.get("montant", "")),
+                    "temps_previsionnel_minutes": temps_raw if temps_raw else "1",
+                    "date_emission": _norm_date(row.get("date_emission", "")),
+                    "statut": _norm_statut(row.get("statut", "EN_ATTENTE"), _STATUT_DEVIS_ALIASES),
+                    "date_decision": _maybe_date(_opt(row, "date_decision")),
+                    "motif_refus": _opt(row, "motif_refus"),
+                }
             )
+            key = (schema.id_patient, schema.date_emission, round(schema.montant, 2))
+            if key in existing_keys:
+                doublons.append({"ligne": i, "contenu": _row_summary(row)})
+            else:
+                valides.append(schema)
+                existing_keys.add(key)
         except ValidationError as e:
             erreurs.append({"ligne": i, "errors": e.errors(), "contenu": _row_summary(row), "row": dict(row)})
         except Exception as e:
@@ -236,7 +249,7 @@ async def import_devis(
         except Exception as e:
             erreurs.append({"ligne": "?", "message": str(e)})
 
-    return {"total": len(rows), "importes": importes, "erreurs": erreurs}
+    return {"total": len(rows), "importes": importes, "doublons": doublons, "erreurs": erreurs}
 
 
 @router.post("/cheques")
@@ -250,23 +263,36 @@ async def import_cheques(
 
     rows = _normalize(_parse_csv(await file.read()), _CHEQUE_LABELS)
     _check_headers(rows, "cheques")
+
+    existing_keys: set[tuple] = {
+        (c.id_patient, c.date_reception, round(c.montant, 2))
+        for c in db.query(models.Cheque.id_patient, models.Cheque.date_reception, models.Cheque.montant)
+        .filter(models.Cheque.id_praticien == id_praticien)
+        .all()
+    }
+
     valides: list[schemas.ChequeCreate] = []
+    doublons: list[dict] = []
     erreurs: list[dict] = []
 
     for i, row in enumerate(rows, start=2):
         try:
-            valides.append(
-                schemas.ChequeCreate.model_validate(
-                    {
-                        "id_praticien": id_praticien,
-                        "id_patient": row.get("id_patient", "").strip(),
-                        "montant": _norm_montant(row.get("montant", "")),
-                        "date_reception": _norm_date(row.get("date_reception", "")),
-                        "date_depot_prevue": _maybe_date(_opt(row, "date_depot_prevue")),
-                        "statut": _norm_statut(row.get("statut", "EN_ATTENTE"), _STATUT_CHEQUE_ALIASES),
-                    }
-                )
+            schema = schemas.ChequeCreate.model_validate(
+                {
+                    "id_praticien": id_praticien,
+                    "id_patient": row.get("id_patient", "").strip(),
+                    "montant": _norm_montant(row.get("montant", "")),
+                    "date_reception": _norm_date(row.get("date_reception", "")),
+                    "date_depot_prevue": _maybe_date(_opt(row, "date_depot_prevue")),
+                    "statut": _norm_statut(row.get("statut", "EN_ATTENTE"), _STATUT_CHEQUE_ALIASES),
+                }
             )
+            key = (schema.id_patient, schema.date_reception, round(schema.montant, 2))
+            if key in existing_keys:
+                doublons.append({"ligne": i, "contenu": _row_summary(row)})
+            else:
+                valides.append(schema)
+                existing_keys.add(key)
         except ValidationError as e:
             erreurs.append({"ligne": i, "errors": e.errors(), "contenu": _row_summary(row), "row": dict(row)})
         except Exception as e:
@@ -280,7 +306,7 @@ async def import_cheques(
         except Exception as e:
             erreurs.append({"ligne": "?", "message": str(e)})
 
-    return {"total": len(rows), "importes": importes, "erreurs": erreurs}
+    return {"total": len(rows), "importes": importes, "doublons": doublons, "erreurs": erreurs}
 
 
 @router.post("/journees")
@@ -294,7 +320,16 @@ async def import_journees(
 
     rows = _normalize(_parse_csv(await file.read()), _JOURNEE_LABELS)
     _check_headers(rows, "journees")
+
+    existing_dates: set = {
+        j.date_jour
+        for j in db.query(models.Journee.date_jour)
+        .filter(models.Journee.id_praticien == id_praticien)
+        .all()
+    }
+
     valides: list[schemas.JourneeCreate] = []
+    doublons: list[dict] = []
     erreurs: list[dict] = []
 
     for i, row in enumerate(rows, start=2):
@@ -303,20 +338,23 @@ async def import_journees(
             return v if v else default
 
         try:
-            valides.append(
-                schemas.JourneeCreate.model_validate(
-                    {
-                        "id_praticien": id_praticien,
-                        "date_jour": _norm_date(row.get("date_jour", "")),
-                        "nb_patients_vus": _int("nb_patients_vus"),
-                        "nb_nouveaux_patients": _int("nb_nouveaux_patients"),
-                        "nb_rdv_manques_connus": _int("nb_rdv_manques_connus"),
-                        "nb_rdv_manques_nouveaux": _int("nb_rdv_manques_nouveaux"),
-                        "temps_presence_minutes": _int("temps_presence_minutes"),
-                        "temps_perdu_minutes": _int("temps_perdu_minutes"),
-                    }
-                )
+            schema = schemas.JourneeCreate.model_validate(
+                {
+                    "id_praticien": id_praticien,
+                    "date_jour": _norm_date(row.get("date_jour", "")),
+                    "nb_patients_vus": _int("nb_patients_vus"),
+                    "nb_nouveaux_patients": _int("nb_nouveaux_patients"),
+                    "nb_rdv_manques_connus": _int("nb_rdv_manques_connus"),
+                    "nb_rdv_manques_nouveaux": _int("nb_rdv_manques_nouveaux"),
+                    "temps_presence_minutes": _int("temps_presence_minutes"),
+                    "temps_perdu_minutes": _int("temps_perdu_minutes"),
+                }
             )
+            if schema.date_jour in existing_dates:
+                doublons.append({"ligne": i, "contenu": _row_summary(row)})
+            else:
+                valides.append(schema)
+                existing_dates.add(schema.date_jour)
         except ValidationError as e:
             erreurs.append({"ligne": i, "errors": e.errors(), "contenu": _row_summary(row), "row": dict(row)})
         except Exception as e:
@@ -327,16 +365,10 @@ async def import_journees(
         try:
             crud.create_journee(db, schema)
             importes += 1
-        except IntegrityError:
-            db.rollback()
-            erreurs.append({
-                "ligne": "?",
-                "message": f"Une journée existe déjà pour ce praticien au {schema.date_jour}.",
-            })
         except Exception as e:
             erreurs.append({"ligne": "?", "message": str(e)})
 
-    return {"total": len(rows), "importes": importes, "erreurs": erreurs}
+    return {"total": len(rows), "importes": importes, "doublons": doublons, "erreurs": erreurs}
 
 
 @router.get("/template/devis")

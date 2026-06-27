@@ -662,13 +662,13 @@ def test_import_journees_sans_token_retourne_401(praticien_id):
 # ── Import journées — erreurs ─────────────────────────────────────────────────
 
 def test_import_journees_doublon_meme_date(sec_headers, praticien_id):
-    """Deux journées pour le même praticien à la même date → erreur sur la 2e."""
+    """Deux journées pour le même praticien à la même date → doublon ignoré, pas d'erreur."""
     csv = _csv(JOURNEE_HEADER, f"{TODAY},8,2,1,0,480,30")
     _post_journees(praticien_id, csv, sec_headers)
     d = _post_journees(praticien_id, csv, sec_headers).json()
     assert d["importes"] == 0
-    assert len(d["erreurs"]) == 1
-    assert "existe déjà" in d["erreurs"][0]["message"]
+    assert len(d["doublons"]) == 1
+    assert d["erreurs"] == []
 
 
 def test_import_journees_temps_presence_zero_erreur(sec_headers, praticien_id):
@@ -723,4 +723,54 @@ def test_import_journees_export_reimportable(sec_headers, praticien_id):
     ).encode("utf-8")
     d = _post_journees(praticien_id, export_content, sec_headers).json()
     assert d["importes"] == 1
+    assert d["erreurs"] == []
+
+
+# ── Déduplication ─────────────────────────────────────────────────────────────
+
+def test_import_devis_doublon_ignore(sec_headers, praticien_id):
+    """Réimporter le même CSV → doublons ignorés, 0 nouvelle insertion."""
+    csv = _csv(DEVIS_HEADER, f"P001,1500,60,{TODAY},EN_ATTENTE,,")
+    _post_devis(praticien_id, csv, sec_headers)
+    d = _post_devis(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 0
+    assert len(d["doublons"]) == 1
+    assert d["erreurs"] == []
+
+
+def test_import_devis_doublon_partiel(sec_headers, praticien_id):
+    """CSV avec 1 nouvelle ligne et 1 doublon → 1 importé, 1 doublon."""
+    csv1 = _csv(DEVIS_HEADER, f"P001,1500,60,{TODAY},EN_ATTENTE,,")
+    _post_devis(praticien_id, csv1, sec_headers)
+    demain = (TODAY + timedelta(days=1)).isoformat()
+    csv2 = _csv(
+        DEVIS_HEADER,
+        f"P001,1500,60,{TODAY},EN_ATTENTE,,",   # doublon
+        f"P002,3000,90,{demain},EN_ATTENTE,,",  # nouveau
+    )
+    d = _post_devis(praticien_id, csv2, sec_headers).json()
+    assert d["importes"] == 1
+    assert len(d["doublons"]) == 1
+    assert d["erreurs"] == []
+
+
+def test_import_devis_doublon_interne_csv(sec_headers, praticien_id):
+    """Deux lignes identiques dans le même CSV → 1 importé, 1 doublon."""
+    csv = _csv(
+        DEVIS_HEADER,
+        f"P001,1500,60,{TODAY},EN_ATTENTE,,",
+        f"P001,1500,60,{TODAY},EN_ATTENTE,,",
+    )
+    d = _post_devis(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 1
+    assert len(d["doublons"]) == 1
+
+
+def test_import_cheques_doublon_ignore(sec_headers, praticien_id):
+    """Réimporter le même CSV chèques → doublon ignoré."""
+    csv = _csv(CHEQUE_HEADER, f"P001,250,{TODAY},,EN_ATTENTE")
+    _post_cheques(praticien_id, csv, sec_headers)
+    d = _post_cheques(praticien_id, csv, sec_headers).json()
+    assert d["importes"] == 0
+    assert len(d["doublons"]) == 1
     assert d["erreurs"] == []
