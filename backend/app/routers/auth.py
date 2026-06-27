@@ -46,7 +46,10 @@ def login_for_access_token(
 
         user_data = {"sub": str(praticien.id_praticien), "role": "praticien"}
 
-    access_token = create_access_token(data=user_data)
+    access_token = create_access_token(
+        data=user_data,
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 
