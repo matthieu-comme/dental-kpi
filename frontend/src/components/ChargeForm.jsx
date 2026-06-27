@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { API_BASE } from '../utils/api'
+import { formatApiErrors } from '../utils/apiErrors'
 
 const initialState = {
   designation: '',
@@ -53,10 +54,7 @@ export default function ChargeForm({ token, idPraticien, onSuccess, embedded = f
       const data = await res.json()
 
       if (!res.ok) {
-        const detail = Array.isArray(data.detail)
-          ? data.detail.map(d => d.msg).join(', ')
-          : data.detail
-        setFeedback({ type: 'error', message: detail || 'Une erreur est survenue.' })
+        setFeedback({ type: 'error', message: formatApiErrors(data.detail) })
       } else {
         setFeedback({ type: 'success', message: `Charge "${data.designation}" enregistrée avec succès.` })
         setForm(initialState)

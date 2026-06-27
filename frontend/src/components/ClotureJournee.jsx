@@ -1,15 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import { API_BASE } from '../utils/api'
+import { formatApiErrors } from '../utils/apiErrors'
 const TODAY = new Date().toISOString().split('T')[0]
 
 const DEVIS_LABELS = { EN_ATTENTE: 'En attente', ACCEPTE: 'Accepté', REFUSE: 'Refusé' }
 const CHEQUE_LABELS = { EN_ATTENTE: 'En attente', DEPOSE: 'Déposé' }
 
 function apiErr(data) {
-  return Array.isArray(data?.detail)
-    ? data.detail.map(d => d.msg).join(', ')
-    : (data?.detail || 'Erreur inconnue')
+  return formatApiErrors(data?.detail)
 }
 
 function timeToMinutes(t) {

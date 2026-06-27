@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import ChargeForm from "./ChargeForm";
 import ExportCsv from "./ExportCsv";
 import Pagination from "./Pagination";
+import { formatApiErrors } from "../utils/apiErrors";
 
 import { API_BASE } from '../utils/api'
 
@@ -139,9 +140,7 @@ export default function ChargeTable({ token, idPraticien }) {
       const result = await res.json();
       if (!res.ok) {
         setEditError(
-          Array.isArray(result.detail)
-            ? result.detail.map((d) => d.msg).join(", ")
-            : result.detail
+          formatApiErrors(result.detail)
         );
       } else {
         setEditItem(null);

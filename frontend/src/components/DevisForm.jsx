@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { API_BASE } from '../utils/api'
+import { formatApiErrors } from '../utils/apiErrors'
 
 function todayStr() {
   return new Date().toLocaleDateString("en-CA");
@@ -60,12 +61,9 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
       const data = await res.json();
 
       if (!res.ok) {
-        const detail = Array.isArray(data.detail)
-          ? data.detail.map((d) => d.msg).join(", ")
-          : data.detail;
         setFeedback({
           type: "error",
-          message: detail || "Une erreur est survenue.",
+          message: formatApiErrors(data.detail),
         });
       } else {
         setFeedback({

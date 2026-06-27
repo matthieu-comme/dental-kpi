@@ -97,10 +97,7 @@ export default function ParametresForm({ token, idPraticien }) {
       const data = await res.json()
 
       if (!res.ok) {
-        const detail = Array.isArray(data.detail)
-          ? data.detail.map(d => d.msg).join(', ')
-          : data.detail
-        setFeedback({ type: 'error', message: detail || 'Une erreur est survenue.' })
+        setFeedback({ type: 'error', message: formatApiErrors(data.detail) })
       } else {
         setFeedback({ type: 'success', message: 'Paramètres enregistrés avec succès.' })
         setExists(true)

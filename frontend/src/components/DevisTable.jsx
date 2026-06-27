@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Pagination from './Pagination'
+import { formatApiErrors } from '../utils/apiErrors'
 
 import { API_BASE } from '../utils/api'
 
@@ -165,9 +166,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
       })
       const result = await res.json()
       if (!res.ok) {
-        setEditError(Array.isArray(result.detail)
-          ? result.detail.map(d => d.msg).join(', ')
-          : result.detail)
+        setEditError(formatApiErrors(result.detail))
       } else {
         setEditItem(null)
         setFeedback({ type: 'success', message: `Devis #${result.id_devis} modifié.` })
