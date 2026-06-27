@@ -8,8 +8,7 @@ import ConsultationView from '../components/ConsultationView'
 import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
 import NotificationBell from '../components/NotificationBell'
-import CsvImport from '../components/CsvImport'
-import ExportCsv from '../components/ExportCsv'
+import ImportExport from '../components/ImportExport'
 
 import { API_BASE } from '../utils/api'
 
@@ -57,7 +56,7 @@ export default function SecretairePage() {
 
   const isDonnees = activeTab === 'donnees'
   const isCloture = activeTab === 'cloture'
-  const isExport = activeTab === 'export'
+  const isCsv = activeTab === 'csv'
 
   return (
     <div className="dashboard">
@@ -82,8 +81,8 @@ export default function SecretairePage() {
         </div>
       </header>
 
-      {/* Barre de sélection praticien — masquée sur les onglets sans contexte praticien */}
-      {!isDonnees && !isExport && (
+      {/* Barre de sélection praticien — masquée sur Données et Import/Export */}
+      {!isDonnees && !isCsv && (
         <div className="praticien-bar">
           <span className="praticien-bar__label">Praticien :</span>
           {loading ? (
@@ -132,21 +131,15 @@ export default function SecretairePage() {
           Données
         </button>
         <button
-          className={`tab-btn ${activeTab === 'import' ? 'tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('import')}
+          className={`tab-btn ${activeTab === 'csv' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('csv')}
         >
-          Import CSV
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'export' ? 'tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('export')}
-        >
-          Export CSV
+          Import / Export
         </button>
       </nav>
 
-      <main className={`dashboard-main ${isDonnees || isExport ? 'dashboard-main--wide' : ''}`}>
-        {!isDonnees && !isCloture && !isExport && !loading && !selectedPraticien && (
+      <main className={`dashboard-main ${isDonnees || isCsv ? 'dashboard-main--wide' : ''}`}>
+        {!isDonnees && !isCloture && !isCsv && !loading && !selectedPraticien && (
           <div className="alert alert--error">
             Aucun praticien actif trouvé. Veuillez en créer un via l'API.
           </div>
@@ -173,22 +166,12 @@ export default function SecretairePage() {
             onClose={() => setActiveTab('devis')}
           />
         )}
-        {activeTab === 'import' && selectedPraticien && (
-          <CsvImport
+        {activeTab === 'csv' && (
+          <ImportExport
             token={secretaireToken}
-            idPraticien={selectedPraticien.id_praticien}
-            onSuccess={bumpNotif}
-          />
-        )}
-        {activeTab === 'import' && !loading && !selectedPraticien && (
-          <div className="alert alert--error">Aucun praticien actif trouvé.</div>
-        )}
-        {activeTab === 'export' && (
-          <ExportCsv
-            token={secretaireToken}
-            resources={['devis', 'cheques', 'journees']}
+            idPraticien={selectedPraticien?.id_praticien}
             praticiens={praticiens}
-            standalone
+            onSuccess={bumpNotif}
           />
         )}
         {activeTab === 'cloture' && !loading && !selectedPraticien && (
