@@ -39,8 +39,18 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setLoading(true);
     setFeedback(null);
+
+    if (form.statut !== "EN_ATTENTE" && !form.date_decision) {
+      setFeedback({ type: "error", message: "La date de décision est requise pour un devis accepté ou refusé." });
+      return;
+    }
+    if (form.statut === "REFUSE" && !form.motif_refus.trim()) {
+      setFeedback({ type: "error", message: "Le motif de refus est obligatoire." });
+      return;
+    }
+
+    setLoading(true);
 
     const payload = {
       id_patient: form.id_patient,
@@ -49,9 +59,9 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
       date_emission: form.date_emission,
       statut: form.statut,
       id_praticien: idPraticien,
+      date_decision: form.statut !== "EN_ATTENTE" ? form.date_decision : null,
     };
 
-    if (form.date_decision) payload.date_decision = form.date_decision;
     if (form.statut === "REFUSE") payload.motif_refus = form.motif_refus;
 
     try {
