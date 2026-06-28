@@ -156,7 +156,8 @@ function CaDeclare({ token, idPraticien, mois, annee, onDeclared, onCancel, init
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-const SALARY_RATES = [15, 16, 18, 19, 20]
+const SALARY_MIN = 15
+const SALARY_MAX = 20
 
 export default function KpiView({ token, idPraticien }) {
   const now = new Date()
@@ -164,7 +165,7 @@ export default function KpiView({ token, idPraticien }) {
   const [annee, setAnnee] = useState(now.getFullYear())
   const [weekOffset, setWeekOffset] = useState(0)
   const [seuil, setSeuil] = useState(0)
-  const [salaireTaux, setSalaireTaux] = useState(18)
+  const [salaireTaux, setSalaireTaux] = useState(17)
   const [refresh, setRefresh] = useState(0)
   const [editingCA, setEditingCA] = useState(false)
 
@@ -325,28 +326,33 @@ export default function KpiView({ token, idPraticien }) {
 
             {/* Salary estimator */}
             <div className="kpi-salary">
-              <p className="kpi-salary__label">Estimation salaire (% du CA)</p>
-              <div className="kpi-salary__row">
-                <div className="kpi-salary__rates">
-                  {SALARY_RATES.map(r => (
-                    <button
-                      key={r}
-                      className={`kpi-salary__rate${salaireTaux === r ? ' kpi-salary__rate--active' : ''}`}
-                      onClick={() => setSalaireTaux(r)}
-                    >
-                      {r} %
-                    </button>
-                  ))}
-                </div>
-                <span className="kpi-salary__result">
-                  {d?.salaire_par_taux
-                    ? fmtE(d.salaire_par_taux[salaireTaux])
-                    : '—'}
+              <div className="kpi-salary__display">
+                <span className="kpi-salary__formula">
+                  {d?.ca_declare != null ? fmtE(d.ca_declare) : '—'}
+                  {' × '}
+                  <strong>{salaireTaux} %</strong>
                 </span>
+                <span className="kpi-salary__equals">=</span>
+                <span className="kpi-salary__result">
+                  {d?.ca_declare != null ? fmtE(d.ca_declare * salaireTaux / 100) : '—'}
+                </span>
+              </div>
+              <div className="kpi-salary__slider-row">
+                <span className="kpi-salary__bound">{SALARY_MIN} %</span>
+                <input
+                  type="range"
+                  className="kpi-salary__slider"
+                  min={SALARY_MIN}
+                  max={SALARY_MAX}
+                  step={1}
+                  value={salaireTaux}
+                  onChange={e => setSalaireTaux(Number(e.target.value))}
+                />
+                <span className="kpi-salary__bound">{SALARY_MAX} %</span>
               </div>
               {d?.salaire_estime != null && (
                 <p className="kpi-salary__sub">
-                  Estimé (CA − charges) : <strong>{fmtE(d.salaire_estime)}</strong>
+                  Net estimé (CA − charges) : <strong>{fmtE(d.salaire_estime)}</strong>
                 </p>
               )}
             </div>

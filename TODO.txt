@@ -1,34 +1,3 @@
-Données :
-
-devis :
- dégager le #
- formater la date 30/12/2029
- statut : accepté check vert, attente point interrogation jaune, refusé croix rouge
- actions: modifier par un crayon et supprimer par poubelle
-
- pareil pour cheques :
-
-renommer déposé par encaissé
-statut à déposer quand en attente + date depot atteinte
-
-
-saisie devis: temps prévisionnel en heures dans le formulaire (pas 1,5 h mais 1h30 par exemple), puis convertit en min pour le backend
-
-
-ajouter  colonne priorité dans le tableau
-tous les devis ayant un taux horaire > au taux cible -> indication haute priorité
-
-Saisie rapide : 
-id patient, statut (3 emoji)
-montant, temps
-date d'émission + potentielle date décision + potentiel motif refus
-
-
-quand statut passe à accepté ou refus, on initialise date décision à la date du jour
-
-si date emission == date ajd : on cache date décision et on remplit automatiquement si statut == accepte ou refuse
-sinon, on affiche date_decision
-
 pour estimation salaire, il manque le 17%. le praticien aurait préféré une jauge avec un curseur permettant d'afficher le calcul
 
 depuis la boite de notifications, pouvoir changer rapidement le statut d'un devis ou d'un chèque via un icone pertinent. pour le devis, la date de décision est automatiquement remplie à la date du jour. que penses tu de cette feature ?
