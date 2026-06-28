@@ -697,6 +697,41 @@ body {
   color: #1a365d;
 }
 
+/* Statuts chèques calculés */
+.badge--encaisse {
+  background: #f0fff4;
+  color: #276749;
+}
+
+.badge--a-deposer {
+  background: #fffaf0;
+  color: #c05621;
+  font-weight: 600;
+}
+
+.badge--attente {
+  background: #fefcbf;
+  color: #744210;
+}
+
+/* Icônes de statut devis */
+.statut-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: default;
+  flex-shrink: 0;
+}
+
+.statut-icon--accepte { background: #c6f6d5; color: #22543d; }
+.statut-icon--attente { background: #fefcbf; color: #744210; }
+.statut-icon--refuse  { background: #fed7d7; color: #9b2c2c; cursor: help; }
+
 /* ─── Boutons d'action dans les lignes ─────────────────────────────────────── */
 
 .action-btns {
@@ -729,6 +764,15 @@ body {
 .btn-action--delete {
   background: #fff5f5;
   color: #c53030;
+}
+
+.btn-action--icon {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ─── Indicateur de temps calculé ─────────────────────────────────────────── */

@@ -14,25 +14,37 @@ const INIT_FILTERS = {
   montantMax: '',
 }
 
-const STATUT_LABELS = { EN_ATTENTE: 'En attente', ACCEPTE: 'Accepté', REFUSE: 'Refusé' }
+function fmtDate(s) {
+  if (!s) return '—'
+  const [y, m, d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
 
-function StatutBadge({ statut, motifRefus }) {
-  const badge = (
-    <span className={`badge badge--${statut.toLowerCase()}${statut === 'REFUSE' && motifRefus ? ' badge--has-tooltip' : ''}`}>
-      {STATUT_LABELS[statut] ?? statut}
+const STATUT_ICONS = {
+  ACCEPTE:    { symbol: '✓', cls: 'accepte', title: 'Accepté' },
+  EN_ATTENTE: { symbol: '?', cls: 'attente', title: 'En attente' },
+  REFUSE:     { symbol: '✕', cls: 'refuse',  title: 'Refusé' },
+}
+
+function StatutIcon({ statut, motifRefus }) {
+  const { symbol, cls, title } = STATUT_ICONS[statut] ?? { symbol: statut, cls: '', title: statut }
+  const icon = (
+    <span
+      className={`statut-icon statut-icon--${cls}${statut === 'REFUSE' && motifRefus ? ' badge--has-tooltip' : ''}`}
+      title={motifRefus ? undefined : title}
+    >
+      {symbol}
     </span>
   )
-
   if (statut === 'REFUSE' && motifRefus) {
     return (
       <span className="tooltip-wrap">
-        {badge}
+        {icon}
         <span className="tooltip-box">{motifRefus}</span>
       </span>
     )
   }
-
-  return badge
+  return icon
 }
 
 function buildEditForm(item) {
@@ -206,7 +218,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     }
   }
 
-  const colSpan = isSecretary ? 9 : 8
+  const colSpan = isSecretary ? 8 : 7
 
   return (
     <div className="data-section">
@@ -271,7 +283,6 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Patient</th>
                   {isSecretary && <th>Praticien</th>}
                   <th>Montant</th>
@@ -289,21 +300,20 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                   </tr>
                 ) : data.map(d => (
                   <tr key={d.id_devis}>
-                    <td>{d.id_devis}</td>
                     <td>{d.id_patient}</td>
                     {isSecretary && <td>{praticiensMap[d.id_praticien] ?? `#${d.id_praticien}`}</td>}
                     <td>{d.montant.toFixed(2)} €</td>
                     <td>{d.temps_previsionnel_minutes}</td>
-                    <td>{d.date_emission}</td>
-                    <td>{d.date_decision ?? '—'}</td>
-                    <td><StatutBadge statut={d.statut} motifRefus={d.motif_refus} /></td>
+                    <td>{fmtDate(d.date_emission)}</td>
+                    <td>{fmtDate(d.date_decision)}</td>
+                    <td><StatutIcon statut={d.statut} motifRefus={d.motif_refus} /></td>
                     <td>
                       <div className="action-btns">
-                        <button className="btn-action btn-action--edit" onClick={() => openEdit(d)}>
-                          Modifier
+                        <button className="btn-action btn-action--edit btn-action--icon" onClick={() => openEdit(d)} title="Modifier">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                        <button className="btn-action btn-action--delete" onClick={() => handleDelete(d)}>
-                          Supprimer
+                        <button className="btn-action btn-action--delete btn-action--icon" onClick={() => handleDelete(d)} title="Supprimer">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                         </button>
                       </div>
                     </td>

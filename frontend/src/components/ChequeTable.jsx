@@ -14,14 +14,24 @@ const INIT_FILTERS = {
   montantMax: '',
 }
 
-const STATUT_LABELS = { EN_ATTENTE: 'En attente', DEPOSE: 'Déposé' }
+function fmtDate(s) {
+  if (!s) return '—'
+  const [y, m, d] = s.split('-')
+  return `${d}/${m}/${y}`
+}
 
-function StatutBadge({ statut }) {
-  return (
-    <span className={`badge badge--${statut.toLowerCase()}`}>
-      {STATUT_LABELS[statut] ?? statut}
-    </span>
-  )
+function getChequeStatut(c) {
+  if (c.statut === 'DEPOSE') return { label: 'Encaissé', cls: 'encaisse' }
+  const today = new Date().toISOString().split('T')[0]
+  if (c.date_depot_prevue && c.date_depot_prevue <= today) {
+    return { label: 'À déposer', cls: 'a-deposer' }
+  }
+  return { label: 'En attente', cls: 'attente' }
+}
+
+function StatutBadge({ cheque }) {
+  const { label, cls } = getChequeStatut(cheque)
+  return <span className={`badge badge--${cls}`}>{label}</span>
 }
 
 function buildEditForm(item) {
@@ -168,7 +178,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
     }
   }
 
-  const colSpan = isSecretary ? 8 : 7
+  const colSpan = isSecretary ? 7 : 6
 
   return (
     <div className="data-section">
@@ -232,7 +242,6 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Patient</th>
                   {isSecretary && <th>Praticien</th>}
                   <th>Montant</th>
@@ -249,20 +258,19 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
                   </tr>
                 ) : data.map(c => (
                   <tr key={c.id_cheque}>
-                    <td>{c.id_cheque}</td>
                     <td>{c.id_patient}</td>
                     {isSecretary && <td>{praticiensMap[c.id_praticien] ?? `#${c.id_praticien}`}</td>}
                     <td>{c.montant.toFixed(2)} €</td>
-                    <td>{c.date_reception}</td>
-                    <td>{c.date_depot_prevue ?? '—'}</td>
-                    <td><StatutBadge statut={c.statut} /></td>
+                    <td>{fmtDate(c.date_reception)}</td>
+                    <td>{fmtDate(c.date_depot_prevue)}</td>
+                    <td><StatutBadge cheque={c} /></td>
                     <td>
                       <div className="action-btns">
-                        <button className="btn-action btn-action--edit" onClick={() => openEdit(c)}>
-                          Modifier
+                        <button className="btn-action btn-action--edit btn-action--icon" onClick={() => openEdit(c)} title="Modifier">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                        <button className="btn-action btn-action--delete" onClick={() => handleDelete(c)}>
-                          Supprimer
+                        <button className="btn-action btn-action--delete btn-action--icon" onClick={() => handleDelete(c)} title="Supprimer">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                         </button>
                       </div>
                     </td>
