@@ -30,3 +30,5 @@ si date emission == date ajd : on cache date décision et on remplit automatique
 sinon, on affiche date_decision
 
 pour estimation salaire, il manque le 17%. le praticien aurait préféré une jauge avec un curseur permettant d'afficher le calcul
+
+depuis la boite de notifications, pouvoir changer rapidement le statut d'un devis ou d'un chèque via un icone pertinent. pour le devis, la date de décision est automatiquement remplie à la date du jour. que penses tu de cette feature ?

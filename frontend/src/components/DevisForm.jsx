@@ -32,7 +32,13 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
     const { name, value } = e.target;
     setForm((prev) => {
       const next = { ...prev, [name]: name === "id_patient" ? value.replace(/\D/g, "") : value };
-      if (name === "statut" && value === "EN_ATTENTE") next.date_decision = "";
+      if (name === "statut") {
+        if (value === "EN_ATTENTE") {
+          next.date_decision = "";
+        } else if (!next.date_decision) {
+          next.date_decision = todayStr();
+        }
+      }
       return next;
     });
   }
@@ -41,7 +47,8 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
     e.preventDefault();
     setFeedback(null);
 
-    if (form.statut !== "EN_ATTENTE" && !form.date_decision) {
+    const _decisionAuto = form.statut !== "EN_ATTENTE" && form.date_emission === todayStr();
+    if (form.statut !== "EN_ATTENTE" && !_decisionAuto && !form.date_decision) {
       setFeedback({ type: "error", message: "La date de décision est requise pour un devis accepté ou refusé." });
       return;
     }
@@ -59,7 +66,7 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
       date_emission: form.date_emission,
       statut: form.statut,
       id_praticien: idPraticien,
-      date_decision: form.statut !== "EN_ATTENTE" ? form.date_decision : null,
+      date_decision: form.statut !== "EN_ATTENTE" ? (_decisionAuto ? todayStr() : form.date_decision) : null,
     };
 
     if (form.statut === "REFUSE") payload.motif_refus = form.motif_refus;
@@ -98,6 +105,8 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
       setLoading(false);
     }
   }
+
+  const decisionAuto = form.statut !== "EN_ATTENTE" && form.date_emission === todayStr();
 
   const formContent = (
     <>
@@ -181,7 +190,7 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
           </select>
         </div>
 
-        {form.statut !== "EN_ATTENTE" && (
+        {form.statut !== "EN_ATTENTE" && !decisionAuto && (
           <div className="form-group">
             <label htmlFor="d-date_decision">Date de décision *</label>
             <input

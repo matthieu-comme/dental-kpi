@@ -37,9 +37,13 @@ function QuickDevisForm({ token, idPraticien }) {
   function set(name, value) {
     setForm(prev => {
       const next = { ...prev, [name]: value }
-      if (name === 'statut' && value === 'EN_ATTENTE') {
-        next.date_decision = ''
-        next.motif_refus = ''
+      if (name === 'statut') {
+        if (value === 'EN_ATTENTE') {
+          next.date_decision = ''
+          next.motif_refus = ''
+        } else if (!next.date_decision) {
+          next.date_decision = todayStr()
+        }
       }
       return next
     })
@@ -55,7 +59,7 @@ function QuickDevisForm({ token, idPraticien }) {
     if (!form.id_patient)                                    { setStatus('err'); setErrorMsg('N° patient requis.');         return }
     if (!form.montant || parseFloat(form.montant) <= 0)      { setStatus('err'); setErrorMsg('Montant requis.');            return }
     if (mins <= 0)                                           { setStatus('err'); setErrorMsg('Temps requis.');              return }
-    if (form.statut !== 'EN_ATTENTE' && !form.date_decision) { setStatus('err'); setErrorMsg('Date de décision requise.'); return }
+    if (form.statut !== 'EN_ATTENTE' && !decisionAuto && !form.date_decision) { setStatus('err'); setErrorMsg('Date de décision requise.'); return }
     if (form.statut === 'REFUSE' && !form.motif_refus.trim()){ setStatus('err'); setErrorMsg('Motif de refus requis.');    return }
 
     setLoading(true)
@@ -68,7 +72,7 @@ function QuickDevisForm({ token, idPraticien }) {
       temps_previsionnel_minutes: mins,
       date_emission: form.date_emission,
       statut: form.statut,
-      date_decision: form.statut !== 'EN_ATTENTE' ? form.date_decision : null,
+      date_decision: form.statut !== 'EN_ATTENTE' ? (decisionAuto ? today : form.date_decision) : null,
     }
     if (form.statut === 'REFUSE') payload.motif_refus = form.motif_refus
 
@@ -96,7 +100,9 @@ function QuickDevisForm({ token, idPraticien }) {
     }
   }
 
-  const needsDecision = form.statut !== 'EN_ATTENTE'
+  const today = todayStr()
+  const decisionAuto = form.statut !== 'EN_ATTENTE' && form.date_emission === today
+  const showDecision = form.statut !== 'EN_ATTENTE' && !decisionAuto
 
   return (
     <form className="pip-form" onSubmit={handleSubmit} noValidate>
@@ -154,7 +160,7 @@ function QuickDevisForm({ token, idPraticien }) {
           onChange={e => set('date_emission', e.target.value)}
           title="Date d'émission"
         />
-        {needsDecision && (
+        {showDecision && (
           <input
             className="pip-field"
             type="date"
