@@ -31,6 +31,7 @@ class PraticienUpdate(BaseModel):
 
 class PraticienResponse(PraticienBase):
     id_praticien: int
+    taux_horaire_cible: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 

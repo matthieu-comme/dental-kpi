@@ -209,7 +209,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
           <select name="statut" value={filters.statut} onChange={onFilterChange}>
             <option value="">Tous</option>
             <option value="EN_ATTENTE">En attente</option>
-            <option value="DEPOSE">Déposé</option>
+            <option value="DEPOSE">Encaissé</option>
           </select>
         </div>
         <div className="filter-item">
@@ -305,7 +305,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
                   <label>Statut *</label>
                   <select name="statut" value={editForm.statut} onChange={onEditChange} required>
                     <option value="EN_ATTENTE">En attente</option>
-                    <option value="DEPOSE">Déposé</option>
+                    <option value="DEPOSE">Encaissé</option>
                   </select>
                 </div>
               </div>

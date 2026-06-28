@@ -137,7 +137,7 @@ export default function ChequeForm({ token, idPraticien, embedded = false, onSuc
               required
             >
               <option value="EN_ATTENTE">En attente</option>
-              <option value="DEPOSE">Déposé</option>
+              <option value="DEPOSE">Encaissé</option>
             </select>
           </div>
         </div>

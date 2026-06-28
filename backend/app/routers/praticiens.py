@@ -26,7 +26,23 @@ def create_praticien(
 def read_praticiens(
     db: Session = Depends(get_db),
 ):
-    return db.query(models.Praticien).all()
+    rows = (
+        db.query(models.Praticien, models.ParametresPraticien.taux_horaire_cible)
+        .outerjoin(
+            models.ParametresPraticien,
+            models.Praticien.id_praticien == models.ParametresPraticien.id_praticien,
+        )
+        .all()
+    )
+    return [
+        schemas.PraticienResponse(
+            id_praticien=p.id_praticien,
+            nom=p.nom,
+            est_actif=p.est_actif,
+            taux_horaire_cible=taux,
+        )
+        for p, taux in rows
+    ]
 
 
 @router.get("/{id_praticien}", response_model=schemas.PraticienResponse)

@@ -163,6 +163,11 @@ export default function SecretairePage() {
             praticiens={praticiens}
             onMutate={bumpNotif}
             focus={donneesFocus}
+            tauxMap={Object.fromEntries(
+              praticiens
+                .filter(p => p.taux_horaire_cible != null)
+                .map(p => [p.id_praticien, p.taux_horaire_cible])
+            )}
           />
         )}
         {activeTab === 'cloture' && selectedPraticien && (

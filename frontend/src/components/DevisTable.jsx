@@ -20,6 +20,26 @@ function fmtDate(s) {
   return `${d}/${m}/${y}`
 }
 
+function fmtDuree(minutes) {
+  if (!minutes) return '—'
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  if (h === 0) return `${m} min`
+  if (m === 0) return `${h}h`
+  return `${h}h${String(m).padStart(2, '0')}`
+}
+
+function minToTime(minutes) {
+  const m = parseInt(minutes) || 0
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
+}
+
+function timeToMin(t) {
+  if (!t) return 0
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 const STATUT_ICONS = {
   ACCEPTE:    { symbol: '✓', cls: 'accepte', title: 'Accepté' },
   EN_ATTENTE: { symbol: '?', cls: 'attente', title: 'En attente' },
@@ -51,7 +71,7 @@ function buildEditForm(item) {
   return {
     id_patient: item.id_patient,
     montant: String(item.montant),
-    temps_previsionnel_minutes: String(item.temps_previsionnel_minutes),
+    temps_time: minToTime(item.temps_previsionnel_minutes),
     date_emission: item.date_emission,
     date_decision: item.date_decision ?? '',
     statut: item.statut,
@@ -59,7 +79,7 @@ function buildEditForm(item) {
   }
 }
 
-export default function DevisTable({ token, isSecretary, praticiensMap, onMutate, focusPatientId }) {
+export default function DevisTable({ token, isSecretary, praticiensMap, onMutate, focusPatientId, tauxMap = {} }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -68,6 +88,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
   const [total, setTotal] = useState(0)
+  const [priorityOnly, setPriorityOnly] = useState(false)
 
   // État de la modale d'édition
   const [editItem, setEditItem] = useState(null)
@@ -167,7 +188,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     const payload = {
       id_patient: editForm.id_patient,
       montant: parseFloat(editForm.montant),
-      temps_previsionnel_minutes: parseInt(editForm.temps_previsionnel_minutes, 10),
+      temps_previsionnel_minutes: timeToMin(editForm.temps_time),
       date_emission: editForm.date_emission,
       statut: editForm.statut,
     }
@@ -218,7 +239,8 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     }
   }
 
-  const colSpan = isSecretary ? 8 : 7
+  const hasTaux = Object.keys(tauxMap).length > 0
+  const colSpan = isSecretary ? (hasTaux ? 9 : 8) : (hasTaux ? 8 : 7)
 
   return (
     <div className="data-section">
@@ -269,7 +291,17 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
           <label>Montant max (€)</label>
           <input type="number" name="montantMax" value={filters.montantMax} onChange={onFilterChange} min="0" step="0.01" placeholder="∞" />
         </div>
-        <button className="btn-ghost-sm" onClick={() => { setFilters(INIT_FILTERS); setPage(1) }}>
+        {hasTaux && (
+          <label className="filter-checkbox">
+            <input
+              type="checkbox"
+              checked={priorityOnly}
+              onChange={e => setPriorityOnly(e.target.checked)}
+            />
+            <span>Prioritaires uniquement</span>
+          </label>
+        )}
+        <button className="btn-ghost-sm" onClick={() => { setFilters(INIT_FILTERS); setPriorityOnly(false); setPage(1) }}>
           Réinitialiser
         </button>
       </div>
@@ -286,27 +318,57 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                   <th>Patient</th>
                   {isSecretary && <th>Praticien</th>}
                   <th>Montant</th>
-                  <th>Temps (min)</th>
-                  <th>Date émission</th>
-                  <th>Date décision</th>
+                  <th>Temps</th>
+                  <th>Émission</th>
+                  <th>Décision</th>
                   <th>Statut</th>
+                  {hasTaux && <th title="Taux horaire vs cible">Priorité</th>}
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {data.length === 0 ? (
-                  <tr>
-                    <td colSpan={colSpan} className="table-empty">Aucun résultat</td>
-                  </tr>
-                ) : data.map(d => (
+                {(() => {
+                  const rows = priorityOnly && hasTaux
+                    ? data.filter(d => {
+                        const taux = tauxMap[d.id_praticien]
+                        return taux != null && d.temps_previsionnel_minutes > 0
+                          && (d.montant / (d.temps_previsionnel_minutes / 60)) > taux
+                      })
+                    : data
+                  return rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={colSpan} className="table-empty">Aucun résultat</td>
+                    </tr>
+                  ) : rows.map(d => (
                   <tr key={d.id_devis}>
                     <td>{d.id_patient}</td>
                     {isSecretary && <td>{praticiensMap[d.id_praticien] ?? `#${d.id_praticien}`}</td>}
                     <td>{d.montant.toFixed(2)} €</td>
-                    <td>{d.temps_previsionnel_minutes}</td>
+                    <td>{fmtDuree(d.temps_previsionnel_minutes)}</td>
                     <td>{fmtDate(d.date_emission)}</td>
                     <td>{fmtDate(d.date_decision)}</td>
                     <td><StatutIcon statut={d.statut} motifRefus={d.motif_refus} /></td>
+                    {hasTaux && (() => {
+                      const tauxCible = tauxMap[d.id_praticien]
+                      const tauxDevis = d.temps_previsionnel_minutes > 0
+                        ? d.montant / (d.temps_previsionnel_minutes / 60)
+                        : 0
+                      const high = tauxCible != null && tauxDevis > tauxCible
+                      return (
+                        <td>
+                          {high && (
+                            <span
+                              className="priority-icon"
+                              title={`${Math.round(tauxDevis)} €/h — supérieur au taux cible (${tauxCible} €/h)`}
+                            >
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                              </svg>
+                            </span>
+                          )}
+                        </td>
+                      )
+                    })()}
                     <td>
                       <div className="action-btns">
                         <button className="btn-action btn-action--edit btn-action--icon" onClick={() => openEdit(d)} title="Modifier">
@@ -318,7 +380,8 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                       </div>
                     </td>
                   </tr>
-                ))}
+                ))
+                })()}
               </tbody>
             </table>
           </div>
@@ -346,8 +409,8 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                   <input type="number" name="montant" value={editForm.montant} onChange={onEditChange} required min="0.01" step="0.01" />
                 </div>
                 <div className="form-group">
-                  <label>Temps prévisionnel (min) *</label>
-                  <input type="number" name="temps_previsionnel_minutes" value={editForm.temps_previsionnel_minutes} onChange={onEditChange} required min="1" />
+                  <label>Temps prévisionnel *</label>
+                  <input type="time" name="temps_time" value={editForm.temps_time} onChange={onEditChange} required />
                 </div>
               </div>
               <div className="form-row">

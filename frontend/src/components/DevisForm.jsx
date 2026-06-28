@@ -7,10 +7,16 @@ function todayStr() {
   return new Date().toLocaleDateString("en-CA");
 }
 
+function timeToMin(t) {
+  if (!t) return 0
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 const initialState = {
   id_patient: "",
+  temps_time: "",
   montant: "",
-  temps_previsionnel_minutes: "",
   date_emission: todayStr(),
   date_decision: "",
   statut: "EN_ATTENTE",
@@ -39,7 +45,7 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
     const payload = {
       id_patient: form.id_patient,
       montant: parseFloat(form.montant),
-      temps_previsionnel_minutes: parseInt(form.temps_previsionnel_minutes, 10),
+      temps_previsionnel_minutes: timeToMin(form.temps_time),
       date_emission: form.date_emission,
       statut: form.statut,
       id_praticien: idPraticien,
@@ -123,16 +129,14 @@ export default function DevisForm({ token, idPraticien, embedded = false, onSucc
           </div>
 
           <div className="form-group">
-            <label htmlFor="d-temps">Temps prévisionnel (min) *</label>
+            <label htmlFor="d-temps">Temps prévisionnel *</label>
             <input
               id="d-temps"
-              type="number"
-              name="temps_previsionnel_minutes"
-              value={form.temps_previsionnel_minutes}
+              type="time"
+              name="temps_time"
+              value={form.temps_time}
               onChange={handleChange}
               required
-              min="1"
-              placeholder=""
             />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import DevisForm from '../components/DevisForm'
 import ChequeForm from '../components/ChequeForm'
@@ -8,14 +8,25 @@ import ConsultationView from '../components/ConsultationView'
 import KpiView from '../components/KpiView'
 import PipContent from '../components/PipContent'
 import { usePip } from '../hooks/usePip'
+import { API_BASE } from '../utils/api'
 
 export default function PraticienPage() {
   const { praticienToken, activeUser, hasSecretaireSession, backToSecretaire, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('saisie')
+  const [tauxHoraireCible, setTauxHoraireCible] = useState(null)
   const { isOpen: isPipOpen, isSupported: isPipSupported, open: openPip, close: closePip } = usePip()
 
-  // activeUser.sub contient l'id du praticien (string dans le JWT)
   const idPraticien = parseInt(activeUser?.sub, 10)
+
+  useEffect(() => {
+    if (!praticienToken || !idPraticien) return
+    fetch(`${API_BASE}/api/v1/praticiens/${idPraticien}/parametres`, {
+      headers: { Authorization: `Bearer ${praticienToken}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.taux_horaire_cible) setTauxHoraireCible(data.taux_horaire_cible) })
+      .catch(() => {})
+  }, [praticienToken, idPraticien])
 
   function handlePip() {
     if (isPipOpen) { closePip(); return }
@@ -28,6 +39,8 @@ export default function PraticienPage() {
       />
     )
   }
+
+  const tauxMap = tauxHoraireCible != null ? { [idPraticien]: tauxHoraireCible } : {}
 
   return (
     <div className="dashboard">
@@ -104,6 +117,7 @@ export default function PraticienPage() {
             token={praticienToken}
             isSecretary={false}
             praticiens={[]}
+            tauxMap={tauxMap}
           />
         )}
         {activeTab === 'kpis' && (

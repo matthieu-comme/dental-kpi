@@ -552,6 +552,27 @@ body {
   border-bottom: 1px solid #e2e8f0;
 }
 
+.filter-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #2d3748;
+  cursor: pointer;
+  align-self: flex-end;
+  padding-bottom: 0.375rem;
+  white-space: nowrap;
+}
+
+.filter-checkbox input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #d69e2e;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .filter-item {
   display: flex;
   flex-direction: column;
@@ -732,6 +753,14 @@ body {
 .statut-icon--attente { background: #fefcbf; color: #744210; }
 .statut-icon--refuse  { background: #fed7d7; color: #9b2c2c; cursor: help; }
 
+/* Icône priorité (taux horaire > cible) */
+.priority-icon {
+  display: inline-flex;
+  align-items: center;
+  color: #d69e2e;
+  cursor: help;
+}
+
 /* ─── Boutons d'action dans les lignes ─────────────────────────────────────── */
 
 .action-btns {
@@ -773,6 +802,37 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ─── Saisie durée (heures + minutes) ─────────────────────────────────────── */
+
+.duree-input {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.duree-input input {
+  width: 64px;
+  padding: 0.5rem 0.5rem;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.duree-input input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.12);
+}
+
+.duree-input span {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
 }
 
 /* ─── Indicateur de temps calculé ─────────────────────────────────────────── */

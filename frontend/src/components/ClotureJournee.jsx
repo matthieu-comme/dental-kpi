@@ -5,7 +5,7 @@ import { formatApiErrors } from '../utils/apiErrors'
 const TODAY = new Date().toISOString().split('T')[0]
 
 const DEVIS_LABELS = { EN_ATTENTE: 'En attente', ACCEPTE: 'Accepté', REFUSE: 'Refusé' }
-const CHEQUE_LABELS = { EN_ATTENTE: 'En attente', DEPOSE: 'Déposé' }
+const CHEQUE_LABELS = { EN_ATTENTE: 'En attente', DEPOSE: 'Encaissé' }
 
 function apiErr(data) {
   return formatApiErrors(data?.detail)
@@ -542,7 +542,7 @@ function ChequeFields({ form, onChange }) {
           <label>Statut *</label>
           <select name="statut" value={form.statut} onChange={onChange} required>
             <option value="EN_ATTENTE">En attente</option>
-            <option value="DEPOSE">Déposé</option>
+            <option value="DEPOSE">Encaissé</option>
           </select>
         </div>
       </div>
