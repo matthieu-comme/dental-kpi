@@ -22,7 +22,6 @@ echo [2/4] Mise a jour des dependances serveur...
 cd backend
 call venv\Scripts\activate.bat
 pip install -r requirements.txt -q
-pip install aiofiles -q
 
 echo.
 echo [3/4] Mise a jour des dependances interface...
