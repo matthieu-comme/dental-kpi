@@ -227,6 +227,7 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  align-items: end;
 }
 
 @media (max-width: 560px) {
@@ -1113,6 +1114,155 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+/* KPI sub-tabs (Mensuel / Graphiques) */
+
+.kpi-subtabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0;
+  margin-bottom: -1rem;
+}
+
+.kpi-subtab {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  color: #718096;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.kpi-subtab:hover { color: #2d3748; }
+
+.kpi-subtab--active {
+  color: #3182ce;
+  border-bottom-color: #3182ce;
+  font-weight: 600;
+}
+
+/* Graphiques tab */
+
+.kpi-graphiques {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.kpi-graph-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.kpi-graph-period-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.kpi-graph-mode-toggle {
+  display: flex;
+  background: #e2e8f0;
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.kpi-mode-btn {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: #718096;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.kpi-mode-btn:hover { color: #2d3748; }
+
+.kpi-mode-btn--active {
+  background: white;
+  color: #2d3748;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.kpi-graph-select {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  background: white;
+  color: #2d3748;
+  cursor: pointer;
+}
+
+.kpi-graph-select--wide { min-width: 220px; }
+
+.kpi-graph-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kpi-graph-month {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  background: white;
+  color: #2d3748;
+}
+
+.kpi-graph-arrow { color: #a0aec0; }
+
+.kpi-graph-indicator-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.kpi-graph-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #718096;
+  flex-shrink: 0;
+}
+
+/* Chart */
+
+.kpi-chart-wrap {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.kpi-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.kpi-chart-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #a0aec0;
 }
 
 /* Period navigation */

@@ -16,7 +16,7 @@ export default function SecretairePage() {
   const { secretaireToken, switchToPraticien, logout } = useAuth()
   const [praticiens, setPraticiens] = useState([])
   const [selectedPraticien, setSelectedPraticien] = useState(null)
-  const [activeTab, setActiveTab] = useState('devis')
+  const [activeTab, setActiveTab] = useState('saisie')
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [notifKey, setNotifKey] = useState(0)
@@ -113,16 +113,10 @@ export default function SecretairePage() {
 
       <nav className="dashboard-nav">
         <button
-          className={`tab-btn ${activeTab === 'devis' ? 'tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('devis')}
+          className={`tab-btn ${activeTab === 'saisie' ? 'tab-btn--active' : ''}`}
+          onClick={() => setActiveTab('saisie')}
         >
-          Devis
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'cheque' ? 'tab-btn--active' : ''}`}
-          onClick={() => setActiveTab('cheque')}
-        >
-          Chèques
+          Saisie
         </button>
         <button
           className={`tab-btn ${activeTab === 'cloture' ? 'tab-btn--active' : ''}`}
@@ -150,11 +144,11 @@ export default function SecretairePage() {
             Aucun praticien actif trouvé. Veuillez en créer un via l'API.
           </div>
         )}
-        {activeTab === 'devis' && selectedPraticien && (
-          <DevisForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
-        )}
-        {activeTab === 'cheque' && selectedPraticien && (
-          <ChequeForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
+        {activeTab === 'saisie' && selectedPraticien && (
+          <div className="forms-grid">
+            <DevisForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
+            <ChequeForm token={secretaireToken} idPraticien={selectedPraticien.id_praticien} onSuccess={bumpNotif} />
+          </div>
         )}
         {activeTab === 'donnees' && (
           <ConsultationView
@@ -175,7 +169,7 @@ export default function SecretairePage() {
             token={secretaireToken}
             idPraticien={selectedPraticien.id_praticien}
             praticienNom={selectedPraticien.nom}
-            onClose={() => setActiveTab('devis')}
+            onClose={() => setActiveTab('saisie')}
           />
         )}
         {activeTab === 'csv' && (

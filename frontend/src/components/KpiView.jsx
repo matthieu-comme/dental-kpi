@@ -27,8 +27,20 @@ function fmtMin(min) {
   return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')} min`
 }
 
-// ── Status (color coding) ────────────────────────────────────────────────────
-// reversed = lower is better
+// Compact formatters for Y-axis labels
+function compactE(v) {
+  if (v >= 10000) return `${(v / 1000).toFixed(0)}k€`
+  if (v >= 1000)  return `${(v / 1000).toFixed(1)}k€`
+  return `${Math.round(v)}€`
+}
+function compactPct(v) { return `${Math.round(v)}%` }
+function compactMin(v) {
+  const h = Math.floor(v / 60)
+  const m = Math.round(v % 60)
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2,'0')}`
+}
+
+// ── Status ───────────────────────────────────────────────────────────────────
 
 function st(value, { good, warn, reversed = false } = {}) {
   if (value == null || good == null) return 'neutral'
@@ -154,12 +166,12 @@ function CaDeclare({ token, idPraticien, mois, annee, onDeclared, onCancel, init
   )
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── KpiMensuel (existing monthly dashboard) ──────────────────────────────────
 
 const SALARY_MIN = 15
 const SALARY_MAX = 20
 
-export default function KpiView({ token, idPraticien }) {
+function KpiMensuel({ token, idPraticien }) {
   const now = new Date()
   const [mois, setMois] = useState(now.getMonth() + 1)
   const [annee, setAnnee] = useState(now.getFullYear())
@@ -177,7 +189,6 @@ export default function KpiView({ token, idPraticien }) {
   const weekBounds = getWeekBounds(weekOffset)
   const isCurrentMonth = mois === now.getMonth() + 1 && annee === now.getFullYear()
 
-  // Monthly KPIs
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -192,7 +203,6 @@ export default function KpiView({ token, idPraticien }) {
     return () => { cancelled = true }
   }, [token, mois, annee, refresh])
 
-  // Weekly KPIs
   useEffect(() => {
     let cancelled = false
     fetch(
@@ -204,7 +214,6 @@ export default function KpiView({ token, idPraticien }) {
     return () => { cancelled = true }
   }, [token, weekBounds.debut, weekBounds.fin])
 
-  // Encours
   useEffect(() => {
     let cancelled = false
     fetch(`${API_BASE}/api/v1/kpis/encours?seuil=${seuil}`, {
@@ -229,8 +238,7 @@ export default function KpiView({ token, idPraticien }) {
   const d = data
 
   return (
-    <div className="kpi-view">
-
+    <div>
       {/* ── Period bar + CA ── */}
       <div className="kpi-period-bar">
         <button className="kpi-nav-btn" onClick={prevMonth}>‹</button>
@@ -263,7 +271,6 @@ export default function KpiView({ token, idPraticien }) {
 
       {loading && <p className="kpi-loading">Chargement des indicateurs…</p>}
 
-      {/* Banner CA manquant */}
       {!loading && d?.ca_declare == null && (
         <div className="kpi-ca-banner">
           <div>
@@ -324,7 +331,6 @@ export default function KpiView({ token, idPraticien }) {
               />
             </div>
 
-            {/* Salary estimator */}
             <div className="kpi-salary">
               <div className="kpi-salary__display">
                 <span className="kpi-salary__formula">
@@ -386,7 +392,6 @@ export default function KpiView({ token, idPraticien }) {
               />
             </div>
 
-            {/* Weekly zoom */}
             <div className="kpi-week-zoom">
               <div className="kpi-week-header">
                 <span className="kpi-week-title">Zoom semaine</span>
@@ -473,7 +478,6 @@ export default function KpiView({ token, idPraticien }) {
               />
             </div>
 
-            {/* Encours */}
             <div className="kpi-encours">
               <div className="kpi-encours__header">
                 <span className="kpi-encours__title">Devis à relancer</span>
@@ -561,6 +565,382 @@ export default function KpiView({ token, idPraticien }) {
           </KpiSection>
         </>
       )}
+    </div>
+  )
+}
+
+// ── KpiGraphiques ─────────────────────────────────────────────────────────────
+
+const INDICATORS = [
+  { value: 'ca_declare',              label: 'CA déclaré (€)',          fmt: fmtE,   yFmt: compactE,   yDomain: [0, null] },
+  { value: 'ca_cumule',               label: 'CA cumulé (€)',           fmt: fmtE,   yFmt: compactE,   yDomain: [0, null], cumulative: 'ca_declare' },
+  { value: 'taux_horaire_reel',       label: 'Taux horaire réel (€/h)', fmt: v => v != null ? `${fmtE(v, 0)}/h` : '—', yFmt: v => `${Math.round(v)}€`, yDomain: [0, null] },
+  { value: 'taux_conversion_nb',      label: 'Taux conversion nb (%)',  fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
+  { value: 'taux_conversion_montant', label: 'Taux conversion € (%)',   fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
+  { value: 'nb_devis_emis',           label: 'Devis émis',              fmt: v => v != null ? String(v) : '—', yFmt: v => String(Math.round(v)), yDomain: [0, null] },
+  { value: 'montant_devis_emis',      label: 'Montant devis émis (€)',  fmt: fmtE,   yFmt: compactE,   yDomain: [0, null] },
+  { value: 'taux_atteinte_ca',        label: "Taux d'atteinte CA (%)",  fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
+  { value: 'ratio_charges',           label: 'Ratio charges (%)',       fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
+  { value: 'nb_patients_vus',         label: 'Patients vus',            fmt: v => v != null ? String(v) : '—', yFmt: v => String(Math.round(v)), yDomain: [0, null] },
+  { value: 'temps_productif_minutes', label: 'Temps productif',         fmt: fmtMin, yFmt: compactMin, yDomain: [0, null] },
+]
+
+const Q_LABELS = ['T1 jan–mars', 'T2 avr–juin', 'T3 juil–sept', 'T4 oct–déc']
+
+function buildPeriodGroups(availableMonths) {
+  if (!availableMonths || availableMonths.length === 0) return []
+  const monthSet = new Set(availableMonths)
+  const hasMonth = (mois, annee) => monthSet.has(`${annee}-${String(mois).padStart(2, '0')}`)
+  const hasQuarter = (q, annee) => {
+    const s = (q - 1) * 3 + 1
+    return hasMonth(s, annee) || hasMonth(s + 1, annee) || hasMonth(s + 2, annee)
+  }
+  const years = [...new Set(availableMonths.map(m => parseInt(m.slice(0, 4))))].sort().reverse()
+  return years.map(y => ({
+    year: y,
+    quarters: [1, 2, 3, 4].filter(q => hasQuarter(q, y)),
+  }))
+}
+
+function periodToMonths(mode, fixed, from, to, CY, CM) {
+  if (mode === 'fixe') {
+    if (fixed.startsWith('year-')) {
+      const y = parseInt(fixed.slice(5))
+      const last = y === CY ? CM : 12
+      return Array.from({ length: last }, (_, i) => ({ mois: i + 1, annee: y }))
+    }
+    if (/^q\d-\d{4}$/.test(fixed)) {
+      const q = parseInt(fixed[1])
+      const y = parseInt(fixed.slice(3))
+      const s = (q - 1) * 3 + 1
+      return [{ mois: s, annee: y }, { mois: s + 1, annee: y }, { mois: s + 2, annee: y }]
+    }
+    return []
+  }
+  if (!from || !to) return []
+  const [fy, fm] = from.split('-').map(Number)
+  const [ty, tm] = to.split('-').map(Number)
+  const months = []
+  let y = fy, m = fm
+  while ((y < ty || (y === ty && m <= tm)) && months.length < 36) {
+    months.push({ mois: m, annee: y })
+    m++
+    if (m > 12) { m = 1; y++ }
+  }
+  return months
+}
+
+function ChartTooltip({ x, y, label, value, W, PAD }) {
+  const tw = 120, th = 36
+  const tx = Math.min(Math.max(x - tw / 2, PAD.left), W - PAD.right - tw)
+  const ty = y - th - 10 < PAD.top ? y + 10 : y - th - 10
+  return (
+    <g>
+      <rect x={tx} y={ty} width={tw} height={th} rx="5" ry="5" fill="#2d3748" opacity="0.92" />
+      <text x={tx + tw / 2} y={ty + 13} textAnchor="middle" fontSize="10" fill="#a0aec0">{label}</text>
+      <text x={tx + tw / 2} y={ty + 28} textAnchor="middle" fontSize="12" fontWeight="600" fill="white">{value}</text>
+    </g>
+  )
+}
+
+function LineChart({ points, formatter, axisFormatter, yDomain }) {
+  const [hovered, setHovered] = useState(null)
+
+  const W = 580, H = 220
+  const PAD = { top: 20, right: 20, bottom: 38, left: 64 }
+  const IW = W - PAD.left - PAD.right
+  const IH = H - PAD.top - PAD.bottom
+
+  const valid = points.filter(p => p.value != null)
+
+  if (valid.length === 0) {
+    return <p className="kpi-chart-empty">Aucune donnée disponible pour cette période.</p>
+  }
+
+  const vals = valid.map(p => p.value)
+  const minV = Math.min(...vals)
+  const maxV = Math.max(...vals)
+  const span = maxV - minV || Math.abs(maxV) * 0.2 || 1
+  const lo = yDomain?.[0] ?? minV - span * 0.12
+  const hi = yDomain?.[1] ?? maxV + span * 0.12
+
+  const n = points.length
+  const xOf = i => PAD.left + (n <= 1 ? IW / 2 : (i / (n - 1)) * IW)
+  const yOf = v => PAD.top + IH - ((v - lo) / (hi - lo)) * IH
+
+  // Build SVG path (segments between non-null values)
+  const pathParts = []
+  let cur = ''
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i]
+    if (p.value != null) {
+      cur += cur === '' ? `M ${xOf(i)} ${yOf(p.value)} ` : `L ${xOf(i)} ${yOf(p.value)} `
+    } else if (cur !== '') {
+      pathParts.push(cur)
+      cur = ''
+    }
+  }
+  if (cur !== '') pathParts.push(cur)
+
+  // Y gridlines (5 levels)
+  const yTicks = Array.from({ length: 5 }, (_, i) => lo + (i / 4) * (hi - lo))
+
+  const hovPoint = hovered != null ? points[hovered] : null
+
+  return (
+    <div className="kpi-chart-wrap">
+      <svg viewBox={`0 0 ${W} ${H}`} className="kpi-chart">
+        {/* Grid + Y labels */}
+        {yTicks.map((v, i) => {
+          const y = yOf(v)
+          return (
+            <g key={i}>
+              <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={PAD.left - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#a0aec0">
+                {axisFormatter(v)}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* Axes */}
+        <line x1={PAD.left} x2={PAD.left} y1={PAD.top} y2={H - PAD.bottom} stroke="#cbd5e0" strokeWidth="1" />
+        <line x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom} y2={H - PAD.bottom} stroke="#cbd5e0" strokeWidth="1" />
+
+        {/* X labels */}
+        {points.map((p, i) => (
+          <text key={i} x={xOf(i)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize="9" fill="#718096">
+            {p.label}
+          </text>
+        ))}
+
+        {/* Line */}
+        {pathParts.map((d, i) => (
+          <path key={i} d={d} fill="none" stroke="#3182ce" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+        ))}
+
+        {/* Dots + hover hit areas */}
+        {points.map((p, i) => p.value != null ? (
+          <g
+            key={i}
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            style={{ cursor: 'pointer' }}
+          >
+            <circle cx={xOf(i)} cy={yOf(p.value)} r="10" fill="transparent" />
+            <circle
+              cx={xOf(i)} cy={yOf(p.value)}
+              r={hovered === i ? 5.5 : 4}
+              fill={hovered === i ? '#2b6cb0' : 'white'}
+              stroke="#3182ce"
+              strokeWidth="2"
+            />
+          </g>
+        ) : null)}
+
+        {/* Tooltip */}
+        {hovPoint != null && hovPoint.value != null && (
+          <ChartTooltip
+            x={xOf(hovered)}
+            y={yOf(hovPoint.value)}
+            label={hovPoint.label}
+            value={formatter(hovPoint.value)}
+            W={W}
+            PAD={PAD}
+          />
+        )}
+      </svg>
+    </div>
+  )
+}
+
+function KpiGraphiques({ token }) {
+  const now = new Date()
+  const CY = now.getFullYear()
+  const CM = now.getMonth() + 1
+
+  const [periodMode, setPeriodMode] = useState('fixe')
+  const [fixedPeriod, setFixedPeriod] = useState(null)
+  const [customFrom, setCustomFrom] = useState(`${CY}-01`)
+  const [customTo, setCustomTo] = useState(`${CY}-${String(CM).padStart(2, '0')}`)
+  const [indicator, setIndicator] = useState('ca_declare')
+  const [rawData, setRawData] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [availableMonths, setAvailableMonths] = useState(null)
+
+  // Load available periods once
+  useEffect(() => {
+    fetch(`${API_BASE}/api/v1/kpis/periodes-disponibles`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const months = d?.mois_disponibles ?? []
+        setAvailableMonths(months)
+        if (months.length > 0 && fixedPeriod === null) {
+          const latestYear = Math.max(...months.map(m => parseInt(m.slice(0, 4))))
+          setFixedPeriod(`year-${latestYear}`)
+        }
+      })
+      .catch(() => setAvailableMonths([]))
+  }, [token])
+
+  // Load KPI data for the selected period
+  useEffect(() => {
+    if (fixedPeriod === null && periodMode === 'fixe') return
+    const months = periodToMonths(periodMode, fixedPeriod, customFrom, customTo, CY, CM)
+    if (months.length === 0) return
+    let cancelled = false
+    setLoading(true)
+    setRawData({})
+    Promise.all(
+      months.map(({ mois, annee }) =>
+        fetch(`${API_BASE}/api/v1/kpis/mensuel?mois=${mois}&annee=${annee}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => [`${annee}-${String(mois).padStart(2, '0')}`, d])
+          .catch(() => [`${annee}-${String(mois).padStart(2, '0')}`, null])
+      )
+    ).then(entries => {
+      if (cancelled) return
+      setRawData(Object.fromEntries(entries))
+      setLoading(false)
+    })
+    return () => { cancelled = true }
+  }, [token, periodMode, fixedPeriod, customFrom, customTo])
+
+  const months = fixedPeriod !== null || periodMode === 'custom'
+    ? periodToMonths(periodMode, fixedPeriod, customFrom, customTo, CY, CM)
+    : []
+  const ind = INDICATORS.find(i => i.value === indicator) || INDICATORS[0]
+
+  const srcField = ind.cumulative || indicator
+  let running = 0
+  const chartPoints = months.map(({ mois, annee }) => {
+    const key = `${annee}-${String(mois).padStart(2, '0')}`
+    const d = rawData[key]
+    const label = months.length > 6
+      ? `${MOIS_NOMS[mois - 1].slice(0, 3)} ${String(annee).slice(2)}`
+      : MOIS_NOMS[mois - 1].slice(0, 3)
+    const raw = d != null ? (d[srcField] ?? null) : null
+    if (ind.cumulative) {
+      if (raw != null) running += raw
+      return { label, value: raw != null ? running : null }
+    }
+    return { label, value: raw }
+  })
+
+  const periodGroups = buildPeriodGroups(availableMonths)
+
+  return (
+    <div className="kpi-graphiques">
+      <div className="kpi-graph-controls">
+        <div className="kpi-graph-period-row">
+          <div className="kpi-graph-mode-toggle">
+            <button
+              className={`kpi-mode-btn${periodMode === 'fixe' ? ' kpi-mode-btn--active' : ''}`}
+              onClick={() => setPeriodMode('fixe')}
+            >
+              Période fixe
+            </button>
+            <button
+              className={`kpi-mode-btn${periodMode === 'custom' ? ' kpi-mode-btn--active' : ''}`}
+              onClick={() => setPeriodMode('custom')}
+            >
+              Personnalisé
+            </button>
+          </div>
+
+          {periodMode === 'fixe' ? (
+            availableMonths === null ? (
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>Chargement…</span>
+            ) : periodGroups.length === 0 ? (
+              <span className="text-muted" style={{ fontSize: '0.85rem' }}>Aucune donnée disponible.</span>
+            ) : (
+              <select
+                className="kpi-graph-select"
+                value={fixedPeriod ?? ''}
+                onChange={e => setFixedPeriod(e.target.value)}
+              >
+                {periodGroups.map(({ year, quarters }) => (
+                  <optgroup key={year} label={`── ${year} ──`}>
+                    <option value={`year-${year}`}>Année complète {year}</option>
+                    {quarters.map(q => (
+                      <option key={q} value={`q${q}-${year}`}>{Q_LABELS[q - 1]} {year}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            )
+          ) : (
+            <div className="kpi-graph-custom-range">
+              <input
+                type="month"
+                className="kpi-graph-month"
+                value={customFrom}
+                max={customTo || undefined}
+                onChange={e => setCustomFrom(e.target.value)}
+              />
+              <span className="kpi-graph-arrow">→</span>
+              <input
+                type="month"
+                className="kpi-graph-month"
+                value={customTo}
+                min={customFrom || undefined}
+                onChange={e => setCustomTo(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="kpi-graph-indicator-row">
+          <label className="kpi-graph-label">Indicateur</label>
+          <select
+            className="kpi-graph-select kpi-graph-select--wide"
+            value={indicator}
+            onChange={e => setIndicator(e.target.value)}
+          >
+            {INDICATORS.map(i => (
+              <option key={i.value} value={i.value}>{i.label}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <p className="kpi-loading">Chargement…</p>
+      ) : (
+        <LineChart points={chartPoints} formatter={ind.fmt} axisFormatter={ind.yFmt} yDomain={ind.yDomain} />
+      )}
+    </div>
+  )
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export default function KpiView({ token, idPraticien }) {
+  const [kpiTab, setKpiTab] = useState('mensuel')
+
+  return (
+    <div className="kpi-view">
+      <div className="kpi-subtabs">
+        <button
+          className={`kpi-subtab${kpiTab === 'mensuel' ? ' kpi-subtab--active' : ''}`}
+          onClick={() => setKpiTab('mensuel')}
+        >
+          Mensuel
+        </button>
+        <button
+          className={`kpi-subtab${kpiTab === 'graphiques' ? ' kpi-subtab--active' : ''}`}
+          onClick={() => setKpiTab('graphiques')}
+        >
+          Graphiques
+        </button>
+      </div>
+
+      {kpiTab === 'mensuel' && <KpiMensuel token={token} idPraticien={idPraticien} />}
+      {kpiTab === 'graphiques' && <KpiGraphiques token={token} idPraticien={idPraticien} />}
     </div>
   )
 }

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, distinct
 from datetime import date, timedelta
 from calendar import monthrange
 from app import models
@@ -42,6 +43,45 @@ def _compute_monthly_charges(charges: list, mois: int, annee: int) -> float:
                 if mois == c.date_debut.month:
                     total += c.montant
     return total
+
+
+def _distinct_ym(db, col, id_prat_col, id_prat) -> set[str]:
+    """Return distinct 'YYYY-MM' strings for a date column, filtered by praticien."""
+    rows = (
+        db.query(
+            func.extract('year',  col).label('y'),
+            func.extract('month', col).label('m'),
+        )
+        .filter(id_prat_col == id_prat)
+        .distinct()
+        .all()
+    )
+    return {f"{int(r.y)}-{int(r.m):02d}" for r in rows}
+
+
+@router.get("/periodes-disponibles")
+def periodes_disponibles(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    id_prat = int(current_user["id"])
+
+    months = (
+        _distinct_ym(db, models.Journee.date_jour,      models.Journee.id_praticien,      id_prat)
+        | _distinct_ym(db, models.Devis.date_emission,   models.Devis.id_praticien,         id_prat)
+        | _distinct_ym(db, models.Cheque.date_reception, models.Cheque.id_praticien,        id_prat)
+    )
+
+    # PerformanceMensuelle stocke mois/annee en entiers, pas en date
+    perfs = (
+        db.query(models.PerformanceMensuelle.mois, models.PerformanceMensuelle.annee)
+        .filter_by(id_praticien=id_prat)
+        .distinct()
+        .all()
+    )
+    months |= {f"{annee}-{mois:02d}" for mois, annee in perfs}
+
+    return {"mois_disponibles": sorted(months)}
 
 
 @router.get("/mensuel")
