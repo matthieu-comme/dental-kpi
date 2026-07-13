@@ -16,6 +16,12 @@ function timeToMinutes(t) {
   return h * 60 + m
 }
 
+function minToTime(min) {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 function StepIndicator({ step }) {
@@ -258,7 +264,7 @@ function JourneeStep({ token, idPraticien, praticienNom, onSuccess }) {
 // ─── Mini devis section (step 2) ──────────────────────────────────────────────
 
 const INIT_DEVIS = {
-  id_patient: '', montant: '', temps_previsionnel_minutes: '',
+  id_patient: '', montant: '', temps_time: '',
   date_emission: TODAY, date_decision: '', statut: 'EN_ATTENTE', motif_refus: '',
 }
 
@@ -266,7 +272,7 @@ function buildDevisForm(item) {
   return {
     id_patient: item.id_patient,
     montant: String(item.montant),
-    temps_previsionnel_minutes: String(item.temps_previsionnel_minutes),
+    temps_time: minToTime(item.temps_previsionnel_minutes),
     date_emission: item.date_emission,
     date_decision: item.date_decision ?? '',
     statut: item.statut,
@@ -278,7 +284,7 @@ function devisPayload(f, idPraticien) {
   const p = {
     id_patient: f.id_patient,
     montant: parseFloat(f.montant),
-    temps_previsionnel_minutes: parseInt(f.temps_previsionnel_minutes, 10),
+    temps_previsionnel_minutes: timeToMinutes(f.temps_time),
     date_emission: f.date_emission,
     statut: f.statut,
   }
@@ -301,8 +307,8 @@ function DevisFields({ form, onChange, prefix = '' }) {
           <input type="number" name="montant" value={form.montant} onChange={onChange} required min="0.01" step="0.01" />
         </div>
         <div className="form-group">
-          <label>Temps (min) *</label>
-          <input type="number" name="temps_previsionnel_minutes" value={form.temps_previsionnel_minutes} onChange={onChange} required min="1" />
+          <label>Temps prévisionnel *</label>
+          <input type="time" name="temps_time" value={form.temps_time} onChange={onChange} required />
         </div>
       </div>
       <div className="form-row">
@@ -510,19 +516,29 @@ const INIT_CHEQUE = {
 }
 
 function buildChequeForm(item) {
+  const today = new Date().toISOString().split('T')[0]
+  let statut = item.statut
+  if (item.statut === 'DEPOSE' ||
+      (item.statut === 'EN_ATTENTE' && item.date_depot_prevue && item.date_depot_prevue <= today)) {
+    statut = 'A_DEPOSER'
+  }
   return {
     id_patient: item.id_patient,
     montant: String(item.montant),
     date_reception: item.date_reception,
     date_depot_prevue: item.date_depot_prevue ?? '',
-    statut: item.statut,
+    statut,
   }
 }
 
 function chequePayload(f, idPraticien) {
-  const p = { id_patient: f.id_patient, montant: parseFloat(f.montant), date_reception: f.date_reception, statut: f.statut }
+  const p = { id_patient: f.id_patient, montant: parseFloat(f.montant), date_reception: f.date_reception, statut: f.statut === 'A_DEPOSER' ? 'EN_ATTENTE' : f.statut }
   if (idPraticien !== undefined) p.id_praticien = idPraticien
-  if (f.date_depot_prevue) p.date_depot_prevue = f.date_depot_prevue
+  if (f.statut === 'A_DEPOSER') {
+    p.date_depot_prevue = f.date_reception
+  } else if (f.date_depot_prevue) {
+    p.date_depot_prevue = f.date_depot_prevue
+  }
   return p
 }
 
@@ -542,7 +558,7 @@ function ChequeFields({ form, onChange }) {
           <label>Statut *</label>
           <select name="statut" value={form.statut} onChange={onChange} required>
             <option value="EN_ATTENTE">En attente</option>
-            <option value="DEPOSE">Encaissé</option>
+            <option value="A_DEPOSER">À déposer</option>
           </select>
         </div>
       </div>
@@ -551,10 +567,12 @@ function ChequeFields({ form, onChange }) {
           <label>Date de réception *</label>
           <input type="date" name="date_reception" value={form.date_reception} onChange={onChange} required min="2020-01-02" />
         </div>
-        <div className="form-group">
-          <label>Date de dépôt prévue</label>
-          <input type="date" name="date_depot_prevue" value={form.date_depot_prevue} onChange={onChange} min={form.date_reception || '2020-01-02'} />
-        </div>
+        {form.statut === 'EN_ATTENTE' && (
+          <div className="form-group">
+            <label>Date de dépôt prévue</label>
+            <input type="date" name="date_depot_prevue" value={form.date_depot_prevue} onChange={onChange} min={form.date_reception || '2020-01-02'} />
+          </div>
+        )}
       </div>
     </>
   )

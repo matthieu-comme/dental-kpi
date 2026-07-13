@@ -35,12 +35,17 @@ function StatutBadge({ cheque }) {
 }
 
 function buildEditForm(item) {
+  const today = new Date().toISOString().split('T')[0]
+  let statut = item.statut
+  if (item.statut === 'EN_ATTENTE' && item.date_depot_prevue && item.date_depot_prevue <= today) {
+    statut = 'A_DEPOSER'
+  }
   return {
     id_patient: item.id_patient,
     montant: String(item.montant),
     date_reception: item.date_reception,
     date_depot_prevue: item.date_depot_prevue ?? '',
-    statut: item.statut,
+    statut,
   }
 }
 
@@ -132,9 +137,13 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
       id_patient: editForm.id_patient,
       montant: parseFloat(editForm.montant),
       date_reception: editForm.date_reception,
-      statut: editForm.statut,
+      statut: editForm.statut === 'A_DEPOSER' ? 'EN_ATTENTE' : editForm.statut,
     }
-    if (editForm.date_depot_prevue) payload.date_depot_prevue = editForm.date_depot_prevue
+    if (editForm.statut === 'A_DEPOSER') {
+      payload.date_depot_prevue = editForm.date_reception
+    } else if (editForm.date_depot_prevue) {
+      payload.date_depot_prevue = editForm.date_depot_prevue
+    }
 
     try {
       const res = await fetch(`${API_BASE}/api/v1/cheques/${editItem.id_cheque}`, {
@@ -305,6 +314,7 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
                   <label>Statut *</label>
                   <select name="statut" value={editForm.statut} onChange={onEditChange} required>
                     <option value="EN_ATTENTE">En attente</option>
+                    <option value="A_DEPOSER">À déposer</option>
                     <option value="DEPOSE">Encaissé</option>
                   </select>
                 </div>
@@ -314,10 +324,12 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
                   <label>Date de réception *</label>
                   <input type="date" name="date_reception" value={editForm.date_reception} onChange={onEditChange} required min="2020-01-02" />
                 </div>
-                <div className="form-group">
-                  <label>Date de dépôt prévue</label>
-                  <input type="date" name="date_depot_prevue" value={editForm.date_depot_prevue} onChange={onEditChange} min={editForm.date_reception || '2020-01-02'} />
-                </div>
+                {editForm.statut === 'EN_ATTENTE' && (
+                  <div className="form-group">
+                    <label>Date de dépôt prévue</label>
+                    <input type="date" name="date_depot_prevue" value={editForm.date_depot_prevue} onChange={onEditChange} min={editForm.date_reception || '2020-01-02'} />
+                  </div>
+                )}
               </div>
               <div className="modal-actions">
                 <button type="button" className="btn-ghost" onClick={() => setEditItem(null)}>Annuler</button>

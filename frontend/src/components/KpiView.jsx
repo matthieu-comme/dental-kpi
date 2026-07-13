@@ -435,13 +435,13 @@ export default function KpiView({ token, idPraticien }) {
               <KpiCard
                 title="Taux de conversion (nb)"
                 value={fmtPct(d?.taux_conversion_nb)}
-                sub="Devis acceptés / décidés"
+                sub="Devis acceptés / émis"
                 status={st(d?.taux_conversion_nb, { good: 70, warn: 50 })}
               />
               <KpiCard
                 title="Taux de conversion (€)"
                 value={fmtPct(d?.taux_conversion_montant)}
-                sub="Montant accepté / décidé"
+                sub="Montant accepté / émis"
                 status={st(d?.taux_conversion_montant, { good: 70, warn: 50 })}
               />
               <KpiCard

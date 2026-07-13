@@ -94,3 +94,17 @@ def update_journee(
         raise HTTPException(status_code=403, detail="Accès non autorisé.")
 
     return crud.update_journee(db, id_journee=id_journee, journee_update=journee_update)
+
+
+@router.delete("/{id_journee}", status_code=204)
+def delete_journee(
+    id_journee: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    db_journee = crud.get_journee(db, id_journee=id_journee)
+    if db_journee is None:
+        raise HTTPException(status_code=404, detail="Journée introuvable.")
+    if current_user["role"] == RoleUser.PRATICIEN and db_journee.id_praticien != int(current_user["id"]):
+        raise HTTPException(status_code=403, detail="Accès non autorisé.")
+    crud.delete_journee(db, id_journee=id_journee)

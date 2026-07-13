@@ -2,11 +2,12 @@ import { useState, useMemo, useEffect } from 'react'
 import DevisTable from './DevisTable'
 import ChequeTable from './ChequeTable'
 import JourneeTable from './JourneeTable'
+import JourneeCalendar from './JourneeCalendar'
 import LogsTable from './LogsTable'
 import ExportCsv from './ExportCsv'
 
 export default function ConsultationView({ token, isSecretary, praticiens, onMutate, focus, tauxMap = {} }) {
-  const [activeTab, setActiveTab] = useState('devis')
+  const [activeTab, setActiveTab] = useState('apercu')
   const [focusPatientId, setFocusPatientId] = useState(null)
   const [focusType, setFocusType] = useState(null)
 
@@ -26,6 +27,7 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
   }, [focus?.key])
 
   const tabs = [
+    { key: 'apercu', label: 'Aperçu' },
     { key: 'devis', label: 'Devis' },
     { key: 'cheques', label: 'Chèques' },
     { key: 'journees', label: 'Journées' },
@@ -49,6 +51,9 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
         <ExportCsv token={token} resources={['devis', 'cheques', 'journees']} praticiens={praticiens} />
       </div>
 
+      {activeTab === 'apercu' && (
+        <JourneeCalendar token={token} isSecretary={isSecretary} praticiensMap={praticiensMap} />
+      )}
       {activeTab === 'devis' && (
         <DevisTable
           token={token}

@@ -10,13 +10,25 @@ const INIT_FILTERS = {
   dateTo: '',
 }
 
+function minToTime(min) {
+  const h = Math.floor(min / 60)
+  const m = min % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+}
+
+function timeToMin(t) {
+  if (!t) return 0
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 function buildEditForm(item) {
   return {
     date_jour: item.date_jour,
     nb_patients_vus: String(item.nb_patients_vus),
     nb_rdv_manques_connus: String(item.nb_rdv_manques_connus),
     nb_rdv_manques_nouveaux: String(item.nb_rdv_manques_nouveaux),
-    temps_presence_minutes: String(item.temps_presence_minutes),
+    temps_presence_time: minToTime(item.temps_presence_minutes),
     temps_perdu_minutes: String(item.temps_perdu_minutes),
   }
 }
@@ -96,7 +108,7 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
     setEditError('')
 
     // Validation locale : temps_perdu <= temps_presence
-    const presence = parseInt(editForm.temps_presence_minutes, 10)
+    const presence = timeToMin(editForm.temps_presence_time)
     const perdu = parseInt(editForm.temps_perdu_minutes, 10)
     if (perdu > presence) {
       setEditError('Le temps perdu ne peut pas dépasser le temps de présence.')
@@ -134,7 +146,26 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
     }
   }
 
-  const colSpan = isSecretary ? 9 : 8
+  async function handleDelete(item) {
+    if (!window.confirm(`Supprimer la journée du ${item.date_jour} ?\nCette action est irréversible.`)) return
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/journees/${item.id_journee}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (res.ok || res.status === 204) {
+        setFeedback({ type: 'success', message: `Journée du ${item.date_jour} supprimée.` })
+        load()
+      } else {
+        const d = await res.json()
+        setFeedback({ type: 'error', message: d.detail || 'Erreur lors de la suppression.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Erreur réseau.' })
+    }
+  }
+
+  const colSpan = isSecretary ? 8 : 7
 
   return (
     <div className="data-section">
@@ -178,14 +209,13 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Date</th>
                   {isSecretary && <th>Praticien</th>}
-                  <th>Patients vus</th>
-                  <th>Nouveaux</th>
-                  <th>RDV non-honorés connus</th>
-                  <th>RDV non-honorés nouveaux</th>
-                  <th>Présence (min)</th>
+                  <th>Patients</th>
+                  <th>Nvx</th>
+                  <th>RDV connus</th>
+                  <th>RDV nvx</th>
+                  <th>Présence</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -196,18 +226,22 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
                   </tr>
                 ) : data.map(j => (
                   <tr key={j.id_journee}>
-                    <td>{j.id_journee}</td>
-                    <td>{j.date_jour}</td>
+                    <td>{j.date_jour.split('-').reverse().join('/')}</td>
                     {isSecretary && <td>{praticiensMap[j.id_praticien] ?? `#${j.id_praticien}`}</td>}
                     <td>{j.nb_patients_vus}</td>
                     <td>{j.nb_nouveaux_patients}</td>
                     <td>{j.nb_rdv_manques_connus}</td>
                     <td>{j.nb_rdv_manques_nouveaux}</td>
-                    <td>{j.temps_presence_minutes}</td>
+                    <td>{minToTime(j.temps_presence_minutes)}</td>
                     <td>
-                      <button className="btn-action btn-action--edit" onClick={() => openEdit(j)}>
-                        Modifier
-                      </button>
+                      <div className="action-btns">
+                        <button className="btn-action btn-action--edit btn-action--icon" onClick={() => openEdit(j)} title="Modifier">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button className="btn-action btn-action--delete btn-action--icon" onClick={() => handleDelete(j)} title="Supprimer">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -237,8 +271,8 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
                   <input type="number" name="nb_patients_vus" value={editForm.nb_patients_vus} onChange={onEditChange} required min="0" />
                 </div>
                 <div className="form-group">
-                  <label>Temps de présence (min) *</label>
-                  <input type="number" name="temps_presence_minutes" value={editForm.temps_presence_minutes} onChange={onEditChange} required min="1" />
+                  <label>Temps de présence *</label>
+                  <input type="time" name="temps_presence_time" value={editForm.temps_presence_time} onChange={onEditChange} required />
                 </div>
               </div>
               <div className="form-row">

@@ -359,6 +359,22 @@ def update_journee(db: Session, id_journee: int, journee_update: schemas.Journee
     return db_journee
 
 
+def delete_journee(db: Session, id_journee: int):
+    db_journee = get_journee(db, id_journee)
+    if not db_journee:
+        return None
+    log = schemas.LogCreate(
+        type_action=TypeAction.SUPPR_JOURNEE,
+        details=f"Suppression journée - Date: {db_journee.date_jour}, Praticien: {db_journee.id_praticien}",
+        type_entite=TypeEntite.JOURNEE,
+        id_entite=id_journee,
+    )
+    create_log(db=db, log=log)
+    db.delete(db_journee)
+    db.commit()
+    return db_journee
+
+
 # CHARGE
 
 

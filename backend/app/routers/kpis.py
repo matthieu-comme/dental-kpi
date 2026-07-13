@@ -81,16 +81,8 @@ def kpis_mensuel(
     ).all()
     nb_devis = len(devis_emis)
     montant_devis = sum(d.montant for d in devis_emis)
-
-    devis_decides = db.query(models.Devis).filter(
-        models.Devis.id_praticien == id_prat,
-        models.Devis.date_decision.between(period_start, period_end),
-        models.Devis.statut.in_([StatutDevis.ACCEPTE, StatutDevis.REFUSE]),
-    ).all()
-    nb_acc = sum(1 for d in devis_decides if d.statut == StatutDevis.ACCEPTE)
-    nb_decides = len(devis_decides)
-    m_acc = sum(d.montant for d in devis_decides if d.statut == StatutDevis.ACCEPTE)
-    m_decides = sum(d.montant for d in devis_decides)
+    nb_acc = sum(1 for d in devis_emis if d.statut == StatutDevis.ACCEPTE)
+    m_acc = sum(d.montant for d in devis_emis if d.statut == StatutDevis.ACCEPTE)
 
     charges_all = db.query(models.Charge).filter_by(id_praticien=id_prat).all()
     charges_m = _compute_monthly_charges(charges_all, mois, annee)
@@ -105,8 +97,8 @@ def kpis_mensuel(
         if ca_declare is not None else None
     )
     taux_att = (ca_declare / ca_cible * 100) if (ca_declare is not None and ca_cible) else None
-    tc_nb = (nb_acc / nb_decides * 100) if nb_decides > 0 else None
-    tc_m = (m_acc / m_decides * 100) if m_decides > 0 else None
+    tc_nb = (nb_acc / nb_devis * 100) if nb_devis > 0 else None
+    tc_m = (m_acc / montant_devis * 100) if montant_devis > 0 else None
     ratio_ant = (montant_devis / ca_cible) if ca_cible else None
     cout_abs = ((t_perdu / 60) * taux_h_reel) if (taux_h_reel and t_perdu > 0) else 0.0
     t_prop = (nb_devis / nb_patients * 100) if nb_patients > 0 else None

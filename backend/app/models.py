@@ -47,6 +47,7 @@ class TypeAction(str, enum.Enum):
     AJOUT_CHEQUE = "AJOUT_CHEQUE"
     MODIF_CHEQUE = "MODIF_CHEQUE"
     SUPPR_CHEQUE = "SUPPR_CHEQUE"
+    SUPPR_JOURNEE = "SUPPR_JOURNEE"
 
 
 class ParametresPraticien(Base):
@@ -70,6 +71,7 @@ class ParametresPraticien(Base):
 class TypeEntite(str, enum.Enum):
     DEVIS = "DEVIS"
     CHEQUE = "CHEQUE"
+    JOURNEE = "JOURNEE"
 
 
 class Log(Base):

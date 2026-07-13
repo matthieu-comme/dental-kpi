@@ -216,7 +216,7 @@ def test_kpi_mensuel_taux_horaire_null_sans_journees(prat_headers, praticien_id)
 
 
 def test_kpi_mensuel_taux_conversion_nb(prat_headers, praticien_id):
-    # 2 acceptés + 1 refusé → 66.7 %
+    # 3 devis émis en janv. : 2 acceptés + 1 refusé → 2/3 = 66.7 %
     client.post("/api/v1/devis/", json=_devis(praticien_id, statut="ACCEPTE", date_emission="2023-01-10", date_decision="2023-01-12"), headers=prat_headers)
     client.post("/api/v1/devis/", json=_devis(praticien_id, statut="ACCEPTE", date_emission="2023-01-11", date_decision="2023-01-13"), headers=prat_headers)
     client.post("/api/v1/devis/", json=_devis(praticien_id, statut="REFUSE",  date_emission="2023-01-12", date_decision="2023-01-14", motif_refus="Trop cher"), headers=prat_headers)
@@ -225,7 +225,7 @@ def test_kpi_mensuel_taux_conversion_nb(prat_headers, praticien_id):
 
 
 def test_kpi_mensuel_taux_conversion_montant(prat_headers, praticien_id):
-    # Accepté 3000 € + Refusé 1000 € → 75 %
+    # 2 devis émis en janv. : accepté 3000 € + refusé 1000 € → 3000/4000 = 75 %
     client.post("/api/v1/devis/", json=_devis(praticien_id, montant=3000, statut="ACCEPTE", date_emission="2023-01-10", date_decision="2023-01-12"), headers=prat_headers)
     client.post("/api/v1/devis/", json=_devis(praticien_id, montant=1000, statut="REFUSE",  date_emission="2023-01-11", date_decision="2023-01-13", motif_refus="Trop cher"), headers=prat_headers)
     d = client.get(_kpi_url(), headers=prat_headers).json()

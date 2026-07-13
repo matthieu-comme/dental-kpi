@@ -46,12 +46,15 @@ export default function ChequeForm({ token, idPraticien, embedded = false, onSuc
       id_patient: form.id_patient,
       montant: parseFloat(form.montant),
       date_reception: form.date_reception,
-      statut: form.statut,
+      statut: form.statut === 'A_DEPOSER' ? 'EN_ATTENTE' : form.statut,
       id_praticien: idPraticien,
     };
 
-    if (form.date_depot_prevue)
+    if (form.statut === 'A_DEPOSER') {
+      payload.date_depot_prevue = form.date_reception;
+    } else if (form.date_depot_prevue) {
       payload.date_depot_prevue = form.date_depot_prevue;
+    }
 
     try {
       const res = await fetch(`${API_BASE}/api/v1/cheques/`, {
@@ -137,7 +140,7 @@ export default function ChequeForm({ token, idPraticien, embedded = false, onSuc
               required
             >
               <option value="EN_ATTENTE">En attente</option>
-              <option value="DEPOSE">Encaissé</option>
+              <option value="A_DEPOSER">À déposer</option>
             </select>
           </div>
         </div>
@@ -156,17 +159,19 @@ export default function ChequeForm({ token, idPraticien, embedded = false, onSuc
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="c-date_depot_prevue">Date de dépôt prévue</label>
-            <input
-              id="c-date_depot_prevue"
-              type="date"
-              name="date_depot_prevue"
-              value={form.date_depot_prevue}
-              onChange={handleChange}
-              min={form.date_reception || "2020-01-02"}
-            />
-          </div>
+          {form.statut === 'EN_ATTENTE' && (
+            <div className="form-group">
+              <label htmlFor="c-date_depot_prevue">Date de dépôt prévue</label>
+              <input
+                id="c-date_depot_prevue"
+                type="date"
+                name="date_depot_prevue"
+                value={form.date_depot_prevue}
+                onChange={handleChange}
+                min={form.date_reception || "2020-01-02"}
+              />
+            </div>
+          )}
         </div>
 
         <button
