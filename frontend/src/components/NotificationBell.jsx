@@ -11,7 +11,7 @@ function todayISO() {
   return new Date().toLocaleDateString('en-CA')
 }
 
-export default function NotificationBell({ token, refreshKey, onNavigate }) {
+export default function NotificationBell({ token, refreshKey, onNavigate, onMutate }) {
   const [data, setData] = useState(null)
   const [open, setOpen] = useState(false)
   const [actioning, setActioning] = useState(new Set())
@@ -81,6 +81,7 @@ export default function NotificationBell({ token, refreshKey, onNavigate }) {
           devis_relance: prev.devis_relance.filter(d => d.id_devis !== devis.id_devis),
           total: prev.total - 1,
         }))
+        onMutate?.()
       }
     } catch {} finally {
       endAction(key)
@@ -103,6 +104,7 @@ export default function NotificationBell({ token, refreshKey, onNavigate }) {
           devis_relance: prev.devis_relance.filter(d => d.id_devis !== devis.id_devis),
           total: prev.total - 1,
         }))
+        onMutate?.()
       }
     } catch {} finally {
       endAction(key)
@@ -125,6 +127,7 @@ export default function NotificationBell({ token, refreshKey, onNavigate }) {
           cheques_depot: prev.cheques_depot.filter(c => c.id_cheque !== cheque.id_cheque),
           total: prev.total - 1,
         }))
+        onMutate?.()
       }
     } catch {} finally {
       endAction(key)

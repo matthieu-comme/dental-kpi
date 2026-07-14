@@ -6,7 +6,7 @@ import JourneeCalendar from './JourneeCalendar'
 import LogsTable from './LogsTable'
 import ExportCsv from './ExportCsv'
 
-export default function ConsultationView({ token, isSecretary, praticiens, onMutate, focus, tauxMap = {} }) {
+export default function ConsultationView({ token, isSecretary, praticiens, onMutate, focus, tauxMap = {}, refreshKey = 0 }) {
   const [activeTab, setActiveTab] = useState('apercu')
   const [focusPatientId, setFocusPatientId] = useState(null)
   const [focusType, setFocusType] = useState(null)
@@ -62,6 +62,7 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
           onMutate={onMutate}
           focusPatientId={focusType === 'devis' ? focusPatientId : null}
           tauxMap={tauxMap}
+          refreshKey={refreshKey}
         />
       )}
       {activeTab === 'cheques' && (
@@ -71,6 +72,7 @@ export default function ConsultationView({ token, isSecretary, praticiens, onMut
           praticiensMap={praticiensMap}
           onMutate={onMutate}
           focusPatientId={focusType === 'cheques' ? focusPatientId : null}
+          refreshKey={refreshKey}
         />
       )}
       {activeTab === 'journees' && (

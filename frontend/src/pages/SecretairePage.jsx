@@ -69,7 +69,7 @@ export default function SecretairePage() {
       <header className="dashboard-header">
         <h1 className="dashboard-title">Dental KPI — Secrétaire</h1>
         <div className="header-actions">
-          <NotificationBell token={secretaireToken} refreshKey={notifKey} onNavigate={handleNotifNavigate} />
+          <NotificationBell token={secretaireToken} refreshKey={notifKey} onNavigate={handleNotifNavigate} onMutate={bumpNotif} />
           {isPipSupported && (
             <button
               className={`btn-pip${isPipOpen ? ' btn-pip--active' : ''}`}
@@ -157,6 +157,7 @@ export default function SecretairePage() {
             praticiens={praticiens}
             onMutate={bumpNotif}
             focus={donneesFocus}
+            refreshKey={notifKey}
             tauxMap={Object.fromEntries(
               praticiens
                 .filter(p => p.taux_horaire_cible != null)

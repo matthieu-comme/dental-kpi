@@ -572,9 +572,9 @@ function KpiMensuel({ token, idPraticien }) {
 // ── KpiGraphiques ─────────────────────────────────────────────────────────────
 
 const INDICATORS = [
-  { value: 'ca_declare',              label: 'CA déclaré (€)',          fmt: fmtE,   yFmt: compactE,   yDomain: [0, null] },
+  { value: 'ca_declare',              label: 'CA déclaré (€)',          fmt: fmtE,   yFmt: compactE,   yDomain: [0, null], ref: { field: 'ca_mensuel_cible',   label: 'CA cible' } },
   { value: 'ca_cumule',               label: 'CA cumulé (€)',           fmt: fmtE,   yFmt: compactE,   yDomain: [0, null], cumulative: 'ca_declare' },
-  { value: 'taux_horaire_reel',       label: 'Taux horaire réel (€/h)', fmt: v => v != null ? `${fmtE(v, 0)}/h` : '—', yFmt: v => `${Math.round(v)}€`, yDomain: [0, null] },
+  { value: 'taux_horaire_reel',       label: 'Taux horaire réel (€/h)', fmt: v => v != null ? `${fmtE(v, 0)}/h` : '—', yFmt: v => `${Math.round(v)}€`, yDomain: [0, null], ref: { field: 'taux_horaire_cible', label: 'Taux cible' } },
   { value: 'taux_conversion_nb',      label: 'Taux conversion nb (%)',  fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
   { value: 'taux_conversion_montant', label: 'Taux conversion € (%)',   fmt: fmtPct, yFmt: compactPct, yDomain: [0, 100] },
   { value: 'nb_devis_emis',           label: 'Devis émis',              fmt: v => v != null ? String(v) : '—', yFmt: v => String(Math.round(v)), yDomain: [0, null] },
@@ -586,6 +586,22 @@ const INDICATORS = [
 ]
 
 const Q_LABELS = ['T1 jan–mars', 'T2 avr–juin', 'T3 juil–sept', 'T4 oct–déc']
+
+const SERIES_COLORS = ['#3182ce', '#e53e3e', '#38a169', '#d69e2e', '#805ad5', '#dd6b20']
+
+function linearRegression(pts) {
+  const valid = pts.map((p, i) => [i, p.value]).filter(([, y]) => y != null)
+  if (valid.length < 3) return null
+  const n = valid.length
+  const sx = valid.reduce((s, [x]) => s + x, 0)
+  const sy = valid.reduce((s, [, y]) => s + y, 0)
+  const sxx = valid.reduce((s, [x]) => s + x * x, 0)
+  const sxy = valid.reduce((s, [x, y]) => s + x * y, 0)
+  const det = n * sxx - sx * sx
+  if (det === 0) return null
+  const b = (n * sxy - sx * sy) / det
+  return { a: (sy - b * sx) / n, b }
+}
 
 function buildPeriodGroups(availableMonths) {
   if (!availableMonths || availableMonths.length === 0) return []
@@ -643,49 +659,70 @@ function ChartTooltip({ x, y, label, value, W, PAD }) {
   )
 }
 
-function LineChart({ points, formatter, axisFormatter, yDomain }) {
-  const [hovered, setHovered] = useState(null)
+function LineChart({ series }) {
+  const [hovered, setHovered] = useState(null) // { si, i }
 
   const W = 580, H = 220
   const PAD = { top: 20, right: 20, bottom: 38, left: 64 }
   const IW = W - PAD.left - PAD.right
   const IH = H - PAD.top - PAD.bottom
 
-  const valid = points.filter(p => p.value != null)
+  const n = series[0]?.points?.length ?? 0
 
-  if (valid.length === 0) {
+  // Unified Y domain across all series
+  let lo = Infinity, hi = -Infinity, hasData = false
+  for (const s of series) {
+    const valid = s.points.filter(p => p.value != null)
+    if (valid.length === 0) continue
+    hasData = true
+    const vals = valid.map(p => p.value)
+    const sMin = Math.min(...vals)
+    const sMax = Math.max(...vals)
+    const sSpan = sMax - sMin || Math.abs(sMax) * 0.2 || 1
+    const sLo = s.yDomain?.[0] ?? sMin - sSpan * 0.12
+    const sHi = s.yDomain?.[1] ?? sMax + sSpan * 0.12
+    lo = Math.min(lo, sLo)
+    hi = Math.max(hi, sHi)
+  }
+  // Expand domain to include reference lines (only on the unconstrained axis end)
+  for (const s of series) {
+    if (!s.refPoints) continue
+    for (const { value: v } of s.refPoints) {
+      if (v == null) continue
+      if (s.yDomain?.[0] == null) lo = Math.min(lo, v)
+      if (s.yDomain?.[1] == null) hi = Math.max(hi, v)
+    }
+  }
+  // Expand for N-1, moyenne, tendance
+  for (const s of series) {
+    if (s.prevPoints) {
+      for (const { value: v } of s.prevPoints) {
+        if (v == null) continue
+        if (s.yDomain?.[0] == null) lo = Math.min(lo, v)
+        if (s.yDomain?.[1] == null) hi = Math.max(hi, v)
+      }
+    }
+    if (s.moyenne != null) {
+      if (s.yDomain?.[0] == null) lo = Math.min(lo, s.moyenne)
+      if (s.yDomain?.[1] == null) hi = Math.max(hi, s.moyenne)
+    }
+    if (s.tendance) {
+      const { a, b } = s.tendance
+      for (const v of [a, a + b * (n - 1)]) {
+        if (s.yDomain?.[0] == null) lo = Math.min(lo, v)
+        if (s.yDomain?.[1] == null) hi = Math.max(hi, v)
+      }
+    }
+  }
+
+  if (!hasData) {
     return <p className="kpi-chart-empty">Aucune donnée disponible pour cette période.</p>
   }
 
-  const vals = valid.map(p => p.value)
-  const minV = Math.min(...vals)
-  const maxV = Math.max(...vals)
-  const span = maxV - minV || Math.abs(maxV) * 0.2 || 1
-  const lo = yDomain?.[0] ?? minV - span * 0.12
-  const hi = yDomain?.[1] ?? maxV + span * 0.12
-
-  const n = points.length
   const xOf = i => PAD.left + (n <= 1 ? IW / 2 : (i / (n - 1)) * IW)
   const yOf = v => PAD.top + IH - ((v - lo) / (hi - lo)) * IH
-
-  // Build SVG path (segments between non-null values)
-  const pathParts = []
-  let cur = ''
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i]
-    if (p.value != null) {
-      cur += cur === '' ? `M ${xOf(i)} ${yOf(p.value)} ` : `L ${xOf(i)} ${yOf(p.value)} `
-    } else if (cur !== '') {
-      pathParts.push(cur)
-      cur = ''
-    }
-  }
-  if (cur !== '') pathParts.push(cur)
-
-  // Y gridlines (5 levels)
   const yTicks = Array.from({ length: 5 }, (_, i) => lo + (i / 4) * (hi - lo))
-
-  const hovPoint = hovered != null ? points[hovered] : null
+  const yAxisFmt = series[0]?.yFmt ?? (v => String(Math.round(v)))
 
   return (
     <div className="kpi-chart-wrap">
@@ -697,7 +734,7 @@ function LineChart({ points, formatter, axisFormatter, yDomain }) {
             <g key={i}>
               <line x1={PAD.left} x2={W - PAD.right} y1={y} y2={y} stroke="#e2e8f0" strokeWidth="1" />
               <text x={PAD.left - 6} y={y + 4} textAnchor="end" fontSize="9" fill="#a0aec0">
-                {axisFormatter(v)}
+                {yAxisFmt(v)}
               </text>
             </g>
           )
@@ -708,48 +745,196 @@ function LineChart({ points, formatter, axisFormatter, yDomain }) {
         <line x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom} y2={H - PAD.bottom} stroke="#cbd5e0" strokeWidth="1" />
 
         {/* X labels */}
-        {points.map((p, i) => (
+        {series[0]?.points.map((p, i) => (
           <text key={i} x={xOf(i)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize="9" fill="#718096">
             {p.label}
           </text>
         ))}
 
-        {/* Line */}
-        {pathParts.map((d, i) => (
-          <path key={i} d={d} fill="none" stroke="#3182ce" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-        ))}
+        {/* Zone objectif */}
+        {series.map((s, si) => {
+          if (!s.refPoints || !s.zone) return null
+          return s.points.map((p, i) => {
+            if (i >= s.points.length - 1) return null
+            const p2 = s.points[i + 1]
+            const r1 = s.refPoints[i], r2 = s.refPoints[i + 1]
+            if (p.value == null || p2.value == null || r1?.value == null || r2?.value == null) return null
+            const above = (p.value + p2.value) / 2 >= (r1.value + r2.value) / 2
+            return (
+              <polygon key={`zone-${si}-${i}`}
+                points={`${xOf(i)},${yOf(p.value)} ${xOf(i + 1)},${yOf(p2.value)} ${xOf(i + 1)},${yOf(r2.value)} ${xOf(i)},${yOf(r1.value)}`}
+                fill={above ? '#38a169' : '#e53e3e'} opacity="0.12" />
+            )
+          })
+        })}
 
-        {/* Dots + hover hit areas */}
-        {points.map((p, i) => p.value != null ? (
-          <g
-            key={i}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-            style={{ cursor: 'pointer' }}
-          >
-            <circle cx={xOf(i)} cy={yOf(p.value)} r="10" fill="transparent" />
-            <circle
-              cx={xOf(i)} cy={yOf(p.value)}
-              r={hovered === i ? 5.5 : 4}
-              fill={hovered === i ? '#2b6cb0' : 'white'}
-              stroke="#3182ce"
-              strokeWidth="2"
-            />
-          </g>
-        ) : null)}
+        {/* Lines */}
+        {series.map((s, si) => {
+          const pathParts = []
+          let cur = ''
+          for (let i = 0; i < s.points.length; i++) {
+            const p = s.points[i]
+            if (p.value != null) {
+              cur += cur === '' ? `M ${xOf(i)} ${yOf(p.value)} ` : `L ${xOf(i)} ${yOf(p.value)} `
+            } else if (cur !== '') { pathParts.push(cur); cur = '' }
+          }
+          if (cur !== '') pathParts.push(cur)
+          return pathParts.map((d, i) => (
+            <path key={`${si}-${i}`} d={d} fill="none" stroke={s.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          ))
+        })}
+
+        {/* Reference lines (dashed) */}
+        {series.map((s, si) => {
+          if (!s.refPoints) return null
+          const pathParts = []
+          let cur = ''
+          for (let i = 0; i < s.refPoints.length; i++) {
+            const p = s.refPoints[i]
+            if (p.value != null) {
+              cur += cur === '' ? `M ${xOf(i)} ${yOf(p.value)} ` : `L ${xOf(i)} ${yOf(p.value)} `
+            } else if (cur !== '') { pathParts.push(cur); cur = '' }
+          }
+          if (cur !== '') pathParts.push(cur)
+          return pathParts.map((d, pi) => (
+            <path key={`ref-${si}-${pi}`} d={d} fill="none" stroke={s.color} strokeWidth="1.5"
+              strokeDasharray="5,4" strokeLinejoin="round" strokeLinecap="round" opacity="0.65" />
+          ))
+        })}
+
+        {/* N-1 lines */}
+        {series.map((s, si) => {
+          if (!s.prevPoints) return null
+          const parts = []
+          let cur = ''
+          for (let i = 0; i < s.prevPoints.length; i++) {
+            const p = s.prevPoints[i]
+            if (p.value != null) {
+              cur += cur === '' ? `M ${xOf(i)} ${yOf(p.value)} ` : `L ${xOf(i)} ${yOf(p.value)} `
+            } else if (cur !== '') { parts.push(cur); cur = '' }
+          }
+          if (cur !== '') parts.push(cur)
+          return parts.map((d, pi) => (
+            <path key={`prev-${si}-${pi}`} d={d} fill="none" stroke={s.color}
+              strokeWidth="1.5" strokeDasharray="3,2" strokeLinejoin="round" strokeLinecap="round" opacity="0.4" />
+          ))
+        })}
+
+        {/* Tendance */}
+        {n >= 3 && series.map((s, si) => {
+          if (!s.tendance) return null
+          const { a, b } = s.tendance
+          const clamp = v => Math.max(lo, Math.min(hi, v))
+          return (
+            <line key={`tend-${si}`}
+              x1={xOf(0)} y1={yOf(clamp(a))}
+              x2={xOf(n - 1)} y2={yOf(clamp(a + b * (n - 1)))}
+              stroke={s.color} strokeWidth="1.5" strokeDasharray="2,3" opacity="0.45" />
+          )
+        })}
+
+        {/* Moyenne */}
+        {series.map((s, si) => {
+          if (s.moyenne == null) return null
+          return (
+            <line key={`moy-${si}`}
+              x1={PAD.left} y1={yOf(s.moyenne)} x2={W - PAD.right} y2={yOf(s.moyenne)}
+              stroke={s.color} strokeWidth="1" strokeDasharray="2,2" opacity="0.55" />
+          )
+        })}
+
+        {/* Dots + hover */}
+        {series.map((s, si) =>
+          s.points.map((p, i) => p.value != null ? (
+            <g key={`${si}-${i}`}
+              onMouseEnter={() => setHovered({ si, i })}
+              onMouseLeave={() => setHovered(null)}
+              style={{ cursor: 'pointer' }}
+            >
+              <circle cx={xOf(i)} cy={yOf(p.value)} r="10" fill="transparent" />
+              <circle
+                cx={xOf(i)} cy={yOf(p.value)}
+                r={hovered?.si === si && hovered?.i === i ? 5.5 : 4}
+                fill={hovered?.si === si && hovered?.i === i ? s.color : 'white'}
+                stroke={s.color}
+                strokeWidth="2"
+              />
+            </g>
+          ) : null)
+        )}
+
+        {/* N-1 dots */}
+        {series.flatMap((s, si) =>
+          (s.prevPoints ?? []).map((p, i) => p.value != null ? (
+            <circle key={`pdot-${si}-${i}`}
+              cx={xOf(i)} cy={yOf(p.value)} r="2.5"
+              fill="white" stroke={s.color} strokeWidth="1.5" opacity="0.45" />
+          ) : null)
+        )}
 
         {/* Tooltip */}
-        {hovPoint != null && hovPoint.value != null && (
-          <ChartTooltip
-            x={xOf(hovered)}
-            y={yOf(hovPoint.value)}
-            label={hovPoint.label}
-            value={formatter(hovPoint.value)}
-            W={W}
-            PAD={PAD}
-          />
-        )}
+        {hovered != null && (() => {
+          const s = series[hovered.si]
+          const p = s?.points[hovered.i]
+          if (!p || p.value == null) return null
+          return (
+            <ChartTooltip
+              x={xOf(hovered.i)} y={yOf(p.value)}
+              label={p.label}
+              value={s.fmt(p.value)}
+              W={W} PAD={PAD}
+            />
+          )
+        })()}
       </svg>
+
+      {(series.length > 1 || series.some(s => s.refPoints || s.prevPoints || s.tendance || s.moyenne != null)) && (
+        <div className="kpi-chart-legend">
+          {series.flatMap((s, i) => {
+            const items = [
+              <span key={`main-${i}`} className="kpi-chart-legend-item">
+                <span className="kpi-chart-legend-dot" style={{ background: s.color }} />
+                {s.label}
+              </span>
+            ]
+            if (s.refPoints && s.refLabel) {
+              items.push(
+                <span key={`ref-${i}`} className="kpi-chart-legend-item">
+                  <svg className="kpi-chart-legend-dash" width="18" height="10" viewBox="0 0 18 10">
+                    <line x1="0" y1="5" x2="18" y2="5" stroke={s.color} strokeWidth="1.5" strokeDasharray="4,3" opacity="0.65" />
+                  </svg>
+                  {s.refLabel}
+                </span>
+              )
+            }
+            return items
+          })}
+          {series.some(s => s.prevPoints) && (
+            <span className="kpi-chart-legend-item kpi-chart-legend-item--overlay">
+              <svg className="kpi-chart-legend-dash" width="18" height="10" viewBox="0 0 18 10">
+                <line x1="0" y1="5" x2="18" y2="5" stroke="#718096" strokeWidth="1.5" strokeDasharray="3,2" opacity="0.6" />
+              </svg>
+              Année N−1
+            </span>
+          )}
+          {series.some(s => s.moyenne != null) && (
+            <span className="kpi-chart-legend-item kpi-chart-legend-item--overlay">
+              <svg className="kpi-chart-legend-dash" width="18" height="10" viewBox="0 0 18 10">
+                <line x1="0" y1="5" x2="18" y2="5" stroke="#718096" strokeWidth="1" strokeDasharray="2,2" opacity="0.7" />
+              </svg>
+              Moyenne
+            </span>
+          )}
+          {series.some(s => s.tendance) && (
+            <span className="kpi-chart-legend-item kpi-chart-legend-item--overlay">
+              <svg className="kpi-chart-legend-dash" width="18" height="10" viewBox="0 0 18 10">
+                <line x1="2" y1="8" x2="16" y2="2" stroke="#718096" strokeWidth="1.5" strokeDasharray="2,3" opacity="0.6" />
+              </svg>
+              Tendance
+            </span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -763,10 +948,15 @@ function KpiGraphiques({ token }) {
   const [fixedPeriod, setFixedPeriod] = useState(null)
   const [customFrom, setCustomFrom] = useState(`${CY}-01`)
   const [customTo, setCustomTo] = useState(`${CY}-${String(CM).padStart(2, '0')}`)
-  const [indicator, setIndicator] = useState('ca_declare')
+  const [indicators, setIndicators] = useState(['ca_declare'])
   const [rawData, setRawData] = useState({})
   const [loading, setLoading] = useState(false)
   const [availableMonths, setAvailableMonths] = useState(null)
+  const [showMoyenne, setShowMoyenne] = useState(false)
+  const [showPrevYear, setShowPrevYear] = useState(false)
+  const [showTendance, setShowTendance] = useState(false)
+  const [showZone, setShowZone] = useState(true)
+  const [rawDataPrev, setRawDataPrev] = useState({})
 
   // Load available periods once
   useEffect(() => {
@@ -810,28 +1000,106 @@ function KpiGraphiques({ token }) {
     return () => { cancelled = true }
   }, [token, periodMode, fixedPeriod, customFrom, customTo])
 
+  // N-1 data fetch
+  useEffect(() => {
+    if (!showPrevYear) { setRawDataPrev({}); return }
+    const prevMonths = periodToMonths(periodMode, fixedPeriod, customFrom, customTo, CY, CM)
+      .map(({ mois, annee }) => ({ mois, annee: annee - 1 }))
+    if (prevMonths.length === 0) return
+    let cancelled = false
+    Promise.all(
+      prevMonths.map(({ mois, annee }) =>
+        fetch(`${API_BASE}/api/v1/kpis/mensuel?mois=${mois}&annee=${annee}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => [`${annee}-${String(mois).padStart(2, '0')}`, d])
+          .catch(() => [`${annee}-${String(mois).padStart(2, '0')}`, null])
+      )
+    ).then(entries => { if (!cancelled) setRawDataPrev(Object.fromEntries(entries)) })
+    return () => { cancelled = true }
+  }, [token, showPrevYear, periodMode, fixedPeriod, customFrom, customTo])
+
   const months = fixedPeriod !== null || periodMode === 'custom'
     ? periodToMonths(periodMode, fixedPeriod, customFrom, customTo, CY, CM)
     : []
-  const ind = INDICATORS.find(i => i.value === indicator) || INDICATORS[0]
 
-  const srcField = ind.cumulative || indicator
-  let running = 0
-  const chartPoints = months.map(({ mois, annee }) => {
-    const key = `${annee}-${String(mois).padStart(2, '0')}`
-    const d = rawData[key]
-    const label = months.length > 6
-      ? `${MOIS_NOMS[mois - 1].slice(0, 3)} ${String(annee).slice(2)}`
-      : MOIS_NOMS[mois - 1].slice(0, 3)
-    const raw = d != null ? (d[srcField] ?? null) : null
-    if (ind.cumulative) {
-      if (raw != null) running += raw
-      return { label, value: raw != null ? running : null }
+  function buildPoints(ind) {
+    const srcField = ind.cumulative || ind.value
+    let running = 0
+    return months.map(({ mois, annee }) => {
+      const key = `${annee}-${String(mois).padStart(2, '0')}`
+      const d = rawData[key]
+      const label = months.length > 6
+        ? `${MOIS_NOMS[mois - 1].slice(0, 3)} ${String(annee).slice(2)}`
+        : MOIS_NOMS[mois - 1].slice(0, 3)
+      const raw = d != null ? (d[srcField] ?? null) : null
+      if (ind.cumulative) {
+        if (raw != null) running += raw
+        return { label, value: raw != null ? running : null }
+      }
+      return { label, value: raw }
+    })
+  }
+
+  function buildRefPoints(ind) {
+    return months.map(({ mois, annee }) => {
+      const key = `${annee}-${String(mois).padStart(2, '0')}`
+      const d = rawData[key]
+      const label = months.length > 6
+        ? `${MOIS_NOMS[mois - 1].slice(0, 3)} ${String(annee).slice(2)}`
+        : MOIS_NOMS[mois - 1].slice(0, 3)
+      return { label, value: d != null ? (d[ind.ref.field] ?? null) : null }
+    })
+  }
+
+  function buildPrevPoints(ind) {
+    const srcField = ind.cumulative || ind.value
+    let running = 0
+    return months.map(({ mois, annee }) => {
+      const key = `${annee - 1}-${String(mois).padStart(2, '0')}`
+      const d = rawDataPrev[key]
+      const label = months.length > 6
+        ? `${MOIS_NOMS[mois - 1].slice(0, 3)} ${String(annee).slice(2)}`
+        : MOIS_NOMS[mois - 1].slice(0, 3)
+      const raw = d != null ? (d[srcField] ?? null) : null
+      if (ind.cumulative) {
+        if (raw != null) running += raw
+        return { label, value: raw != null ? running : null }
+      }
+      return { label, value: raw }
+    })
+  }
+
+  const series = indicators.map((indValue, idx) => {
+    const ind = INDICATORS.find(i => i.value === indValue) || INDICATORS[0]
+    const rawRef = ind.ref?.field ? buildRefPoints(ind) : null
+    const hasRef = rawRef?.some(p => p.value != null) ?? false
+    const points = buildPoints(ind)
+    const prevRaw = showPrevYear ? buildPrevPoints(ind) : null
+    const hasPrev = prevRaw?.some(p => p.value != null) ?? false
+    const validVals = points.filter(p => p.value != null)
+    const moyenne = showMoyenne && validVals.length > 1
+      ? validVals.reduce((s, p) => s + p.value, 0) / validVals.length
+      : null
+    return {
+      points,
+      refPoints: hasRef ? rawRef : null,
+      refLabel: hasRef ? ind.ref.label : null,
+      zone: showZone && hasRef,
+      prevPoints: hasPrev ? prevRaw : null,
+      tendance: showTendance ? linearRegression(points) : null,
+      moyenne,
+      color: SERIES_COLORS[idx % SERIES_COLORS.length],
+      fmt: ind.fmt,
+      yFmt: ind.yFmt,
+      yDomain: ind.yDomain,
+      label: ind.label,
     }
-    return { label, value: raw }
   })
 
   const periodGroups = buildPeriodGroups(availableMonths)
+  const availableToAdd = INDICATORS.filter(i => !indicators.includes(i.value))
 
   return (
     <div className="kpi-graphiques">
@@ -895,23 +1163,83 @@ function KpiGraphiques({ token }) {
         </div>
 
         <div className="kpi-graph-indicator-row">
-          <label className="kpi-graph-label">Indicateur</label>
-          <select
-            className="kpi-graph-select kpi-graph-select--wide"
-            value={indicator}
-            onChange={e => setIndicator(e.target.value)}
-          >
-            {INDICATORS.map(i => (
-              <option key={i.value} value={i.value}>{i.label}</option>
-            ))}
-          </select>
+          <label className="kpi-graph-label">Indicateurs</label>
+          <div className="kpi-indicator-chips">
+            {indicators.length === 1 ? (
+              <>
+                <span className="kpi-indicator-chip__dot" style={{ background: SERIES_COLORS[0], marginRight: '0.25rem' }} />
+                <select
+                  className="kpi-graph-select kpi-graph-select--wide"
+                  value={indicators[0]}
+                  onChange={e => setIndicators([e.target.value])}
+                >
+                  {INDICATORS.map(i => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </select>
+              </>
+            ) : (
+              indicators.map((indValue, idx) => {
+                const ind = INDICATORS.find(i => i.value === indValue)
+                return (
+                  <span key={indValue} className="kpi-indicator-chip">
+                    <span className="kpi-indicator-chip__dot" style={{ background: SERIES_COLORS[idx % SERIES_COLORS.length] }} />
+                    {ind?.label}
+                    <button
+                      className="kpi-indicator-chip__remove"
+                      onClick={() => setIndicators(prev => prev.filter(v => v !== indValue))}
+                      title="Retirer"
+                    >×</button>
+                  </span>
+                )
+              })
+            )}
+            {availableToAdd.length > 0 && (
+              <select
+                className="kpi-indicator-add"
+                value=""
+                onChange={e => { if (e.target.value) setIndicators(prev => [...prev, e.target.value]) }}
+              >
+                <option value="">+ Ajouter…</option>
+                {availableToAdd.map(i => (
+                  <option key={i.value} value={i.value}>{i.label}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        </div>
+
+        <div className="kpi-chart-options">
+          <span className="kpi-chart-options__label">Affichage :</span>
+          <button
+            className={`kpi-option-btn${showMoyenne ? ' kpi-option-btn--active' : ''}`}
+            onClick={() => setShowMoyenne(v => !v)}
+            title="Ligne horizontale à la valeur moyenne de la période. Utile à partir de 3 mois."
+          >Moyenne</button>
+          <button
+            className={`kpi-option-btn${showPrevYear ? ' kpi-option-btn--active' : ''}`}
+            onClick={() => setShowPrevYear(v => !v)}
+            title="Affiche la même courbe décalée d'un an, pour comparer avec la période équivalente de l'année précédente."
+          >Année N−1</button>
+          <button
+            className={`kpi-option-btn${showTendance ? ' kpi-option-btn--active' : ''}`}
+            onClick={() => setShowTendance(v => !v)}
+            title="Droite de régression linéaire — indique si l'indicateur progresse ou régresse sur la période. Nécessite au moins 3 mois."
+          >Tendance</button>
+          {indicators.some(v => INDICATORS.find(i => i.value === v)?.ref) && (
+            <button
+              className={`kpi-option-btn${showZone ? ' kpi-option-btn--active' : ''}`}
+              onClick={() => setShowZone(v => !v)}
+              title="Colorie en vert les mois où la valeur dépasse l'objectif, en rouge ceux où elle est en dessous. Dépend de l'objectif configuré pour le praticien."
+            >Zone objectif</button>
+          )}
         </div>
       </div>
 
       {loading ? (
         <p className="kpi-loading">Chargement…</p>
       ) : (
-        <LineChart points={chartPoints} formatter={ind.fmt} axisFormatter={ind.yFmt} yDomain={ind.yDomain} />
+        <LineChart series={series} />
       )}
     </div>
   )

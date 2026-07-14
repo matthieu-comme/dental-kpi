@@ -456,6 +456,31 @@ body {
   margin-top: 1rem;
 }
 
+.modal-day-detail {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.modal-day-detail .modal-subsection {
+  flex: 1;
+  min-width: 0;
+}
+
+.modal-subsection__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin: 0 0 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-subsection__title { color: #a0aec0; }
+}
+
 .modal-actions .btn-ghost {
   color: #718096;
   padding: 0.625rem 1rem;
@@ -856,6 +881,10 @@ body {
   max-width: 560px;
 }
 
+.modal-card--day-detail {
+  max-width: min(920px, 92vw);
+}
+
 /* ─── Clôture journée ──────────────────────────────────────────────────────── */
 
 .cloture-journee {
@@ -1234,6 +1263,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .kpi-graph-label {
@@ -1241,6 +1271,136 @@ body {
   font-weight: 500;
   color: #718096;
   flex-shrink: 0;
+}
+
+.kpi-indicator-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.kpi-indicator-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #edf2f7;
+  border-radius: 20px;
+  padding: 0.25rem 0.6rem 0.25rem 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.kpi-indicator-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kpi-indicator-chip__remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a0aec0;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0 0 0 0.1rem;
+  margin: 0;
+}
+
+.kpi-indicator-chip__remove:hover { color: #e53e3e; }
+
+.kpi-indicator-add {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px dashed #cbd5e0;
+  border-radius: 20px;
+  background: white;
+  color: #4a5568;
+  cursor: pointer;
+}
+
+.kpi-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding: 0.5rem 0.5rem 0;
+  justify-content: center;
+}
+
+.kpi-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #4a5568;
+}
+
+.kpi-chart-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.kpi-chart-legend-dash {
+  flex-shrink: 0;
+  display: block;
+}
+
+.kpi-chart-legend-item--overlay {
+  color: #718096;
+}
+
+.kpi-chart-options {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.kpi-chart-options__label {
+  font-size: 0.8rem;
+  color: #718096;
+  flex-shrink: 0;
+  margin-right: 0.1rem;
+}
+
+.kpi-option-btn {
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e0;
+  background: transparent;
+  color: #4a5568;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  line-height: 1.5;
+}
+
+.kpi-option-btn:hover {
+  border-color: #a0aec0;
+  background: #f7fafc;
+}
+
+.kpi-option-btn--active {
+  background: #ebf8ff;
+  border-color: #3182ce;
+  color: #2b6cb0;
+  font-weight: 500;
+}
+
+@media (prefers-color-scheme: dark) {
+  .kpi-indicator-chip { background: #2d3748; color: #e2e8f0; }
+  .kpi-indicator-add { background: #1a202c; color: #a0aec0; border-color: #4a5568; }
+  .kpi-chart-legend-item { color: #a0aec0; }
+  .kpi-chart-legend-item--overlay { color: #718096; }
+  .kpi-option-btn { color: #a0aec0; border-color: #4a5568; }
+  .kpi-option-btn:hover { background: #2d3748; border-color: #718096; }
+  .kpi-option-btn--active { background: #1a365d; border-color: #4299e1; color: #90cdf4; }
 }
 
 /* Chart */

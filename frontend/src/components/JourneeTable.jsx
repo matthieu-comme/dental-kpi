@@ -23,12 +23,14 @@ function timeToMin(t) {
 }
 
 function buildEditForm(item) {
+  const arrivalMin = 9 * 60
   return {
     date_jour: item.date_jour,
     nb_patients_vus: String(item.nb_patients_vus),
     nb_rdv_manques_connus: String(item.nb_rdv_manques_connus),
     nb_rdv_manques_nouveaux: String(item.nb_rdv_manques_nouveaux),
-    temps_presence_time: minToTime(item.temps_presence_minutes),
+    heure_arrivee: '09:00',
+    heure_depart: minToTime(arrivalMin + item.temps_presence_minutes),
     temps_perdu_minutes: String(item.temps_perdu_minutes),
   }
 }
@@ -108,10 +110,15 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
     setEditError('')
 
     // Validation locale : temps_perdu <= temps_presence
-    const presence = timeToMin(editForm.temps_presence_time)
+    const presence = timeToMin(editForm.heure_depart) - timeToMin(editForm.heure_arrivee)
+    if (presence <= 0) {
+      setEditError("L'heure de départ doit être après l'heure d'arrivée.")
+      setEditLoading(false)
+      return
+    }
     const perdu = parseInt(editForm.temps_perdu_minutes, 10)
-    if (perdu > presence) {
-      setEditError('Le temps perdu ne peut pas dépasser le temps de présence.')
+    if (!isNaN(perdu) && perdu > presence) {
+      setEditError(`Le temps perdu (${perdu} min) ne peut pas dépasser le temps de présence (${presence} min).`)
       setEditLoading(false)
       return
     }
@@ -265,16 +272,26 @@ export default function JourneeTable({ token, isSecretary, praticiensMap }) {
                 <label>Date *</label>
                 <input type="date" name="date_jour" value={editForm.date_jour} onChange={onEditChange} required min="2020-01-02" />
               </div>
+              <div className="form-group">
+                <label>Patients vus *</label>
+                <input type="number" name="nb_patients_vus" value={editForm.nb_patients_vus} onChange={onEditChange} required min="0" />
+              </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Patients vus *</label>
-                  <input type="number" name="nb_patients_vus" value={editForm.nb_patients_vus} onChange={onEditChange} required min="0" />
+                  <label>Heure d'arrivée *</label>
+                  <input type="time" name="heure_arrivee" value={editForm.heure_arrivee} onChange={onEditChange} required />
                 </div>
                 <div className="form-group">
-                  <label>Temps de présence *</label>
-                  <input type="time" name="temps_presence_time" value={editForm.temps_presence_time} onChange={onEditChange} required />
+                  <label>Heure de départ *</label>
+                  <input type="time" name="heure_depart" value={editForm.heure_depart} onChange={onEditChange} required />
                 </div>
               </div>
+              {(() => {
+                const diff = timeToMin(editForm.heure_depart) - timeToMin(editForm.heure_arrivee)
+                if (diff <= 0) return <p className="time-hint time-hint--error">⚠ L'heure de départ doit être après l'heure d'arrivée</p>
+                const h = Math.floor(diff / 60), m = diff % 60
+                return <p className="time-hint">→ Temps de présence : {diff} min ({h}h{m > 0 ? String(m).padStart(2, '0') : '00'})</p>
+              })()}
               <div className="form-row">
                 <div className="form-group">
                   <label>RDV non-honorés connus *</label>

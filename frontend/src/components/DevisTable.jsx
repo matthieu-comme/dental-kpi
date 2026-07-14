@@ -79,7 +79,7 @@ function buildEditForm(item) {
   }
 }
 
-export default function DevisTable({ token, isSecretary, praticiensMap, onMutate, focusPatientId, tauxMap = {} }) {
+export default function DevisTable({ token, isSecretary, praticiensMap, onMutate, focusPatientId, tauxMap = {}, refreshKey = 0 }) {
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState('')
@@ -141,7 +141,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
   useEffect(() => {
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [token, filters, page, pageSize])
+  }, [token, filters, page, pageSize, refreshKey])
 
   function onFilterChange(e) {
     const { name, value } = e.target
