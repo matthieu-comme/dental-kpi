@@ -739,6 +739,11 @@ function RecapStep({ token, idPraticien, praticienNom, dateJour, onBack, onClose
 
   function handleClose() {
     setDone(true)
+    // Sauvegarde automatique à la clôture — fire-and-forget, ne bloque pas l'UX
+    fetch(`${API_BASE}/api/v1/admin/backup`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
     setTimeout(onClose, 1500)
   }
 

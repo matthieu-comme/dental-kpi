@@ -17,6 +17,7 @@ from app.routers import (
     notifications,
     imports,
     export,
+    backup,
 )
 from app.database import SessionLocal, engine
 from app import models, crud, schemas
@@ -88,6 +89,7 @@ app.include_router(kpis.router)
 app.include_router(notifications.router)
 app.include_router(imports.router)
 app.include_router(export.router)
+app.include_router(backup.router)
 
 
 @app.get("/api/v1/status")
