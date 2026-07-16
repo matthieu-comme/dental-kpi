@@ -7,12 +7,18 @@ import { API_BASE } from '../utils/api'
 const INIT_FILTERS = {
   patientId: '',
   praticienId: '',
-  statut: '',
+  statuts: ['EN_ATTENTE', 'A_DEPOSER', 'DEPOSE'],
   dateFrom: '',
   dateTo: '',
   montantMin: '',
   montantMax: '',
 }
+
+const STATUT_PILLS = [
+  { value: 'EN_ATTENTE', label: 'En attente', cls: 'attente'   },
+  { value: 'A_DEPOSER',  label: 'À déposer',  cls: 'a-deposer' },
+  { value: 'DEPOSE',     label: 'Encaissés',  cls: 'encaisse'  },
+]
 
 function fmtDate(s) {
   if (!s) return '—'
@@ -84,7 +90,19 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
     const params = new URLSearchParams()
     if (f.patientId) params.set('id_patient', f.patientId)
     if (f.praticienId) params.set('id_praticien', f.praticienId)
-    if (f.statut) params.set('statut', f.statut)
+    const wantAttente  = f.statuts.includes('EN_ATTENTE')
+    const wantADeposer = f.statuts.includes('A_DEPOSER')
+    const wantDepose   = f.statuts.includes('DEPOSE')
+    if (wantDepose) params.append('statut', 'DEPOSE')
+    if (wantAttente && wantADeposer) {
+      params.append('statut', 'EN_ATTENTE')
+    } else if (wantAttente) {
+      params.append('statut', 'EN_ATTENTE')
+      params.set('depot_echu', 'false')
+    } else if (wantADeposer) {
+      params.append('statut', 'EN_ATTENTE')
+      params.set('depot_echu', 'true')
+    }
     if (f.dateFrom) params.set('date_from', f.dateFrom)
     if (f.dateTo) params.set('date_to', f.dateTo)
     if (f.montantMin) params.set('montant_min', f.montantMin)
@@ -213,13 +231,30 @@ export default function ChequeTable({ token, isSecretary, praticiensMap, onMutat
             </select>
           </div>
         )}
-        <div className="filter-item">
+        <div className="filter-item filter-item--pills">
           <label>Statut</label>
-          <select name="statut" value={filters.statut} onChange={onFilterChange}>
-            <option value="">Tous</option>
-            <option value="EN_ATTENTE">En attente</option>
-            <option value="DEPOSE">Encaissé</option>
-          </select>
+          <div className="statut-pills">
+            {STATUT_PILLS.map(p => {
+              const active = filters.statuts.includes(p.value)
+              return (
+                <button
+                  key={p.value}
+                  className={`statut-pill${active ? ` statut-pill--${p.cls}` : ''}`}
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      statuts: active
+                        ? prev.statuts.filter(s => s !== p.value)
+                        : [...prev.statuts, p.value],
+                    }))
+                    setPage(1)
+                  }}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <div className="filter-item">
           <label>Date réception — du</label>

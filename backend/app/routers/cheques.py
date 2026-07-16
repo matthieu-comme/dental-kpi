@@ -1,5 +1,6 @@
-from typing import Optional
+from typing import List, Optional
 from datetime import date
+from sqlalchemy import or_
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -36,7 +37,8 @@ def create_cheque(
 def read_cheques(
     id_patient: Optional[str] = None,
     id_praticien: Optional[int] = None,
-    statut: Optional[models.StatutCheque] = None,
+    statut: List[models.StatutCheque] = Query(default=[]),
+    depot_echu: Optional[bool] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     montant_min: Optional[float] = None,
@@ -55,7 +57,19 @@ def read_cheques(
     if id_patient:
         query = query.filter(models.Cheque.id_patient.ilike(f"%{id_patient}%"))
     if statut:
-        query = query.filter(models.Cheque.statut == statut)
+        query = query.filter(models.Cheque.statut.in_(statut))
+    if depot_echu is True:
+        query = query.filter(
+            models.Cheque.date_depot_prevue.isnot(None),
+            models.Cheque.date_depot_prevue <= date.today(),
+        )
+    elif depot_echu is False:
+        query = query.filter(
+            or_(
+                models.Cheque.date_depot_prevue.is_(None),
+                models.Cheque.date_depot_prevue > date.today(),
+            )
+        )
     if date_from:
         query = query.filter(models.Cheque.date_reception >= date_from)
     if date_to:

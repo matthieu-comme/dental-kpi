@@ -808,7 +808,9 @@ body {
 .statut-pill--attente { background: #fefcbf; border-color: #d69e2e; color: #744210; }
 .statut-pill--accepte { background: #c6f6d5; border-color: #38a169; color: #22543d; }
 .statut-pill--termine { background: #b2f5ea; border-color: #319795; color: #234e52; }
-.statut-pill--refuse  { background: #fed7d7; border-color: #e53e3e; color: #9b2c2c; }
+.statut-pill--refuse   { background: #fed7d7; border-color: #e53e3e; color: #9b2c2c; }
+.statut-pill--encaisse  { background: #f0fff4; border-color: #38a169; color: #276749; }
+.statut-pill--a-deposer { background: #fffaf0; border-color: #dd6b20; color: #7b341e; font-weight: 600; }
 
 /* Icône priorité (taux horaire > cible) */
 .priority-icon {
