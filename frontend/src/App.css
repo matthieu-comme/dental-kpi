@@ -735,6 +735,11 @@ body {
   color: #276749;
 }
 
+.badge--termine {
+  background: #e6fffa;
+  color: #234e52;
+}
+
 .badge--refuse {
   background: #fff5f5;
   color: #9b2c2c;
@@ -777,8 +782,33 @@ body {
 }
 
 .statut-icon--accepte { background: #c6f6d5; color: #22543d; }
+.statut-icon--termine { background: #b2f5ea; color: #234e52; }
 .statut-icon--attente { background: #fefcbf; color: #744210; }
 .statut-icon--refuse  { background: #fed7d7; color: #9b2c2c; cursor: help; }
+
+.statut-pills {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.statut-pill {
+  padding: 0.18rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: transparent;
+  color: #a0aec0;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+.statut-pill--attente { background: #fefcbf; border-color: #d69e2e; color: #744210; }
+.statut-pill--accepte { background: #c6f6d5; border-color: #38a169; color: #22543d; }
+.statut-pill--termine { background: #b2f5ea; border-color: #319795; color: #234e52; }
+.statut-pill--refuse  { background: #fed7d7; border-color: #e53e3e; color: #9b2c2c; }
 
 /* Icône priorité (taux horaire > cible) */
 .priority-icon {
@@ -820,6 +850,11 @@ body {
 .btn-action--delete {
   background: #fff5f5;
   color: #c53030;
+}
+
+.btn-action--termine {
+  background: #e6fffa;
+  color: #2c7a7b;
 }
 
 .btn-action--icon {

@@ -25,6 +25,7 @@ const MONTH_NAMES = [
 const DEVIS_STATUT_LABELS = {
   EN_ATTENTE: 'En attente',
   ACCEPTE: 'Accepté',
+  TERMINE: 'Terminé',
   REFUSE: 'Refusé',
 }
 

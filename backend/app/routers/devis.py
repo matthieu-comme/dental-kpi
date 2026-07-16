@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
@@ -36,7 +36,7 @@ def create_devis(
 def read_deviss(
     id_patient: Optional[str] = None,
     id_praticien: Optional[int] = None,
-    statut: Optional[models.StatutDevis] = None,
+    statut: List[models.StatutDevis] = Query(default=[]),
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
     montant_min: Optional[float] = None,
@@ -55,7 +55,7 @@ def read_deviss(
     if id_patient:
         query = query.filter(models.Devis.id_patient.ilike(f"%{id_patient}%"))
     if statut:
-        query = query.filter(models.Devis.statut == statut)
+        query = query.filter(models.Devis.statut.in_(statut))
     if date_from:
         query = query.filter(models.Devis.date_emission >= date_from)
     if date_to:

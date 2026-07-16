@@ -377,6 +377,21 @@ def test_update_devis_not_found(sec_headers):
     assert r.status_code == 404
 
 
+def test_update_devis_accepte_to_termine(sec_headers, praticien_id):
+    created = client.post(
+        "/api/v1/devis/",
+        json={**_devis_payload(praticien_id), "statut": "ACCEPTE", "date_decision": "2023-01-02"},
+        headers=sec_headers,
+    ).json()
+    r = client.put(
+        f"/api/v1/devis/{created['id_devis']}",
+        json={**_devis_payload(praticien_id), "statut": "TERMINE", "date_decision": "2023-01-02"},
+        headers=sec_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["statut"] == "TERMINE"
+
+
 def test_update_devis_business_rule(sec_headers, praticien_id):
     created = client.post(
         "/api/v1/devis/", json=_devis_payload(praticien_id), headers=sec_headers
@@ -767,6 +782,19 @@ def test_read_deviss_filter_statut(sec_headers, praticien_id):
     data = r.json()
     assert len(data) == 1
     assert data[0]["statut"] == "ACCEPTE"
+
+
+def test_read_deviss_filter_statut_multiple(sec_headers, praticien_id):
+    payload_att = _devis_payload(praticien_id)
+    payload_ter = {**_devis_payload(praticien_id), "statut": "TERMINE", "date_decision": "2023-01-02"}
+    payload_ref = {**_devis_payload(praticien_id), "statut": "REFUSE",  "date_decision": "2023-01-02", "motif_refus": "Non"}
+    client.post("/api/v1/devis/", json=payload_att, headers=sec_headers)
+    client.post("/api/v1/devis/", json=payload_ter, headers=sec_headers)
+    client.post("/api/v1/devis/", json=payload_ref, headers=sec_headers)
+    r = client.get("/api/v1/devis/?statut=EN_ATTENTE&statut=TERMINE", headers=sec_headers)
+    assert r.status_code == 200
+    statuts = {d["statut"] for d in r.json()}
+    assert statuts == {"EN_ATTENTE", "TERMINE"}
 
 
 def test_read_deviss_filter_patient_ilike(sec_headers, praticien_id):

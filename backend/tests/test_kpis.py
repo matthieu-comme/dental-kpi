@@ -232,6 +232,14 @@ def test_kpi_mensuel_taux_conversion_montant(prat_headers, praticien_id):
     assert d["taux_conversion_montant"] == pytest.approx(75.0, abs=0.1)
 
 
+def test_kpi_mensuel_termine_compte_comme_converti(prat_headers, praticien_id):
+    # TERMINE doit compter comme converti au même titre qu'ACCEPTE
+    client.post("/api/v1/devis/", json=_devis(praticien_id, statut="TERMINE", date_emission="2023-01-10", date_decision="2023-01-12"), headers=prat_headers)
+    client.post("/api/v1/devis/", json=_devis(praticien_id, statut="REFUSE",  date_emission="2023-01-11", date_decision="2023-01-13", motif_refus="Trop cher"), headers=prat_headers)
+    d = client.get(_kpi_url(), headers=prat_headers).json()
+    assert d["taux_conversion_nb"] == pytest.approx(50.0, abs=0.1)
+
+
 def test_kpi_mensuel_ratio_charges(prat_headers, praticien_id):
     # CA=20000, charge mensuelle=4000 → ratio=20 %
     client.post("/api/v1/performances/", json=_perf(praticien_id), headers=prat_headers)

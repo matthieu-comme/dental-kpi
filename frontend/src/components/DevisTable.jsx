@@ -7,12 +7,19 @@ import { API_BASE } from '../utils/api'
 const INIT_FILTERS = {
   patientId: '',
   praticienId: '',
-  statut: '',
+  statuts: ['EN_ATTENTE', 'ACCEPTE'],
   dateFrom: '',
   dateTo: '',
   montantMin: '',
   montantMax: '',
 }
+
+const STATUT_PILLS = [
+  { value: 'EN_ATTENTE', label: 'En attente', cls: 'attente' },
+  { value: 'ACCEPTE',    label: 'Acceptés',   cls: 'accepte' },
+  { value: 'TERMINE',    label: 'Terminés',   cls: 'termine' },
+  { value: 'REFUSE',     label: 'Refusés',    cls: 'refuse'  },
+]
 
 function fmtDate(s) {
   if (!s) return '—'
@@ -41,9 +48,10 @@ function timeToMin(t) {
 }
 
 const STATUT_ICONS = {
-  ACCEPTE:    { symbol: '✓', cls: 'accepte', title: 'Accepté' },
-  EN_ATTENTE: { symbol: '?', cls: 'attente', title: 'En attente' },
-  REFUSE:     { symbol: '✕', cls: 'refuse',  title: 'Refusé' },
+  EN_ATTENTE: { symbol: '?',  cls: 'attente', title: 'En attente' },
+  ACCEPTE:    { symbol: '✓',  cls: 'accepte', title: 'Accepté — en cours' },
+  TERMINE:    { symbol: '✓✓', cls: 'termine', title: 'Terminé' },
+  REFUSE:     { symbol: '✕',  cls: 'refuse',  title: 'Refusé' },
 }
 
 function StatutIcon({ statut, motifRefus }) {
@@ -116,7 +124,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
     const params = new URLSearchParams()
     if (f.patientId) params.set('id_patient', f.patientId)
     if (f.praticienId) params.set('id_praticien', f.praticienId)
-    if (f.statut) params.set('statut', f.statut)
+    f.statuts.forEach(s => params.append('statut', s))
     if (f.dateFrom) params.set('date_from', f.dateFrom)
     if (f.dateTo) params.set('date_to', f.dateTo)
     if (f.montantMin) params.set('montant_min', f.montantMin)
@@ -174,7 +182,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
       // date_decision doit être absente
     } else {
       if (!editForm.date_decision) {
-        setEditError("La date de décision est requise pour un statut Accepté ou Refusé.")
+        setEditError("La date de décision est requise pour un statut Accepté, Terminé ou Refusé.")
         setEditLoading(false)
         return
       }
@@ -216,6 +224,34 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
       setEditError('Erreur réseau.')
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  async function handleTerminer(item) {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/devis/${item.id_devis}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          id_patient: item.id_patient,
+          montant: item.montant,
+          temps_previsionnel_minutes: item.temps_previsionnel_minutes,
+          date_emission: item.date_emission,
+          date_decision: item.date_decision,
+          statut: 'TERMINE',
+        }),
+      })
+      if (res.ok) {
+        const result = await res.json()
+        setFeedback({ type: 'success', message: `Devis #${result.id_devis} marqué comme terminé.` })
+        load()
+        onMutate?.()
+      } else {
+        const r = await res.json()
+        setFeedback({ type: 'error', message: r.detail || 'Erreur lors de la mise à jour.' })
+      }
+    } catch {
+      setFeedback({ type: 'error', message: 'Erreur réseau.' })
     }
   }
 
@@ -266,14 +302,30 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
             </select>
           </div>
         )}
-        <div className="filter-item">
+        <div className="filter-item filter-item--pills">
           <label>Statut</label>
-          <select name="statut" value={filters.statut} onChange={onFilterChange}>
-            <option value="">Tous</option>
-            <option value="EN_ATTENTE">En attente</option>
-            <option value="ACCEPTE">Accepté</option>
-            <option value="REFUSE">Refusé</option>
-          </select>
+          <div className="statut-pills">
+            {STATUT_PILLS.map(p => {
+              const active = filters.statuts.includes(p.value)
+              return (
+                <button
+                  key={p.value}
+                  className={`statut-pill${active ? ` statut-pill--${p.cls}` : ''}`}
+                  onClick={() => {
+                    setFilters(prev => ({
+                      ...prev,
+                      statuts: active
+                        ? prev.statuts.filter(s => s !== p.value)
+                        : [...prev.statuts, p.value],
+                    }))
+                    setPage(1)
+                  }}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
         <div className="filter-item">
           <label>Date émission — du</label>
@@ -301,7 +353,7 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
             <span>Prioritaires uniquement</span>
           </label>
         )}
-        <button className="btn-ghost-sm" onClick={() => { setFilters(INIT_FILTERS); setPriorityOnly(false); setPage(1) }}>
+        <button className="btn-ghost-sm" onClick={() => { setFilters({ ...INIT_FILTERS }); setPriorityOnly(false); setPage(1) }}>
           Réinitialiser
         </button>
       </div>
@@ -371,6 +423,11 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                     })()}
                     <td>
                       <div className="action-btns">
+                        {d.statut === 'ACCEPTE' && (
+                          <button className="btn-action btn-action--termine btn-action--icon" onClick={() => handleTerminer(d)} title="Marquer comme terminé">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12l5 5L16 5"/><path d="M9 12l5 5L22 5"/></svg>
+                          </button>
+                        )}
                         <button className="btn-action btn-action--edit btn-action--icon" onClick={() => openEdit(d)} title="Modifier">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
@@ -438,7 +495,8 @@ export default function DevisTable({ token, isSecretary, praticiensMap, onMutate
                 <label>Statut *</label>
                 <select name="statut" value={editForm.statut} onChange={onEditChange} required>
                   <option value="EN_ATTENTE">En attente</option>
-                  <option value="ACCEPTE">Accepté</option>
+                  <option value="ACCEPTE">Accepté — en cours</option>
+                  <option value="TERMINE">Terminé</option>
                   <option value="REFUSE">Refusé</option>
                 </select>
               </div>

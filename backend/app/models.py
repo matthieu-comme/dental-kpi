@@ -113,6 +113,7 @@ class Journee(Base):
 class StatutDevis(str, enum.Enum):
     EN_ATTENTE = "EN_ATTENTE"
     ACCEPTE = "ACCEPTE"
+    TERMINE = "TERMINE"
     REFUSE = "REFUSE"
 
 

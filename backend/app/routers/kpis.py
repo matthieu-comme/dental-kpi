@@ -121,8 +121,8 @@ def kpis_mensuel(
     ).all()
     nb_devis = len(devis_emis)
     montant_devis = sum(d.montant for d in devis_emis)
-    nb_acc = sum(1 for d in devis_emis if d.statut == StatutDevis.ACCEPTE)
-    m_acc = sum(d.montant for d in devis_emis if d.statut == StatutDevis.ACCEPTE)
+    nb_acc = sum(1 for d in devis_emis if d.statut in (StatutDevis.ACCEPTE, StatutDevis.TERMINE))
+    m_acc = sum(d.montant for d in devis_emis if d.statut in (StatutDevis.ACCEPTE, StatutDevis.TERMINE))
 
     charges_all = db.query(models.Charge).filter_by(id_praticien=id_prat).all()
     charges_m = _compute_monthly_charges(charges_all, mois, annee)
